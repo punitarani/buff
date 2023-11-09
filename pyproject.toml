@@ -12,6 +12,7 @@ aiolimiter = "^1.1.0"
 httpx = "^0.25.1"
 python-dotenv = "^1.0.0"
 streamlit = "^1.28.1"
+tenacity = "^8.2.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"
