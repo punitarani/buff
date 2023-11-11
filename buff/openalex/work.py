@@ -43,6 +43,15 @@ class Work:
             raise OpenAlexError("Invalid Entity ID")
         self.entity_id: str | None = entity_id
 
+        self._data: WorkObject | None = None
+
+    @property
+    async def data(self) -> WorkObject:
+        """Get the work object data."""
+        if self._data is None:
+            self._data = await self.get()
+        return self._data
+
     @retry(
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -86,4 +95,5 @@ class Work:
         url = f"{self.BASE_URL}{self.entity_id}"
 
         data = await self.__GET(url)
-        return WorkObject(**data)
+        self._data = WorkObject(**data)
+        return self._data
