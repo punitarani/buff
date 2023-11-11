@@ -1,15 +1,24 @@
 """buff/openalex/work.py"""
 
+from json import JSONDecodeError
+
 import httpx
+from aiocache import cached
 from aiolimiter import AsyncLimiter
-from tenacity import retry, stop_after_attempt
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from config import EMAIL
 
+from .config import aiocache_redis_config
 from .errors import OpenAlexError
 from .models import WorkObject
 
-limiter = AsyncLimiter(max_rate=10, time_period=1)
+limiter = AsyncLimiter(max_rate=10, time_period=2)
 
 
 class Work:
@@ -34,8 +43,20 @@ class Work:
             raise OpenAlexError("Invalid Entity ID")
         self.entity_id: str | None = entity_id
 
-    @retry(stop=stop_after_attempt(3))
-    async def __GET(self, url: str) -> httpx.Response:
+    @retry(
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=(
+            retry_if_exception_type(JSONDecodeError)
+            | retry_if_exception_type(httpx.ConnectTimeout)
+            | retry_if_exception_type(OpenAlexError)
+        ),
+    )
+    @cached(
+        **aiocache_redis_config,
+        key_builder=lambda func, self, url, *args, **kwargs: url,
+    )
+    async def __GET(self, url: str) -> dict:
         """
         GET request to the OpenAlex API.
 
@@ -43,13 +64,17 @@ class Work:
             url (str): URL to the OpenAlex API endpoint
 
         Returns:
-            httpx.Response: Response object from the OpenAlex API
+            dict: Response object from the OpenAlex API
         """
         async with limiter:
             async with httpx.AsyncClient() as client:
-                return await client.get(
+                response = await client.get(
                     url, params={"email": EMAIL}, follow_redirects=True
                 )
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    raise OpenAlexError(f"Error {response.status_code}: GET {url}")
 
     async def get(self) -> WorkObject:
         """
@@ -60,12 +85,5 @@ class Work:
         """
         url = f"{self.BASE_URL}{self.entity_id}"
 
-        response = await self.__GET(url)
-
-        if not response.status_code:
-            raise OpenAlexError(f"Error calling OpenAlex API: {url}")
-        elif response.status_code == 404:
-            raise OpenAlexError("Paper not found")
-
-        data = response.json()
+        data = await self.__GET(url)
         return WorkObject(**data)
