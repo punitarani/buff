@@ -1,38 +1,59 @@
 """buff/openalex/models.py"""
 
-from typing import Optional
+from datetime import date, datetime
+from typing import Annotated, Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, StringConstraints
+
+# fmt: off
+WorkID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/W\d{4,10}$')]
+
+AuthorID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/A\d{4,10}$')]
+AuthorPosition = Annotated[str, StringConstraints(pattern=r'^(first|middle|last)$')]
+
+InstitutionID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/I\d{4,10}$')]
+OrcidID = Annotated[str, StringConstraints(pattern=r'^https://orcid\.org/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$')]
+RorID = Annotated[str, StringConstraints(pattern=r'^https://ror\.org/\w{9}$')]
+RorType = Annotated[str, StringConstraints(pattern=r'^(education|healthcare|company|archive|nonprofit|government|facility|other)$')]
+
+ApcProvenance = Annotated[str, StringConstraints(pattern=r'^(openapc|doaj)$')]
+
+OALocationVersion = Annotated[str, StringConstraints(pattern=r'^(publishedVersion|acceptedVersion|submittedVersion)$')]
+
+DOI = Annotated[str, StringConstraints(pattern=r'https:\/\/doi\.org\/10\.\d{4,9}\/[\S]+$')]
+PMID = Annotated[str, StringConstraints(pattern=r'^https://pubmed\.ncbi\.nlm\.nih\.gov/\d+$')]
+PMCID = Annotated[str, StringConstraints(pattern=r'^https://www\.ncbi\.nlm\.nih\.gov/pmc/articles/PMC\d+$')]
+# fmt: on
 
 
 class InvertedIndex(BaseModel):
     """Inverted index of the abstract of a paper"""
 
-    terms: Optional[dict[str, list[int] | None] | list[int] | None] = None
+    terms: Optional[dict[str, list[int]] | list[int]] = None
 
 
 class Author(BaseModel):
     """Author of a paper"""
 
-    id: Optional[HttpUrl] = None
+    id: Optional[AuthorID] = None
     display_name: Optional[str] = None
-    orcid: Optional[HttpUrl] = None
+    orcid: Optional[OrcidID] = None
 
 
 class Institution(BaseModel):
     """Institution of an author of a paper"""
 
-    id: Optional[HttpUrl] = None
+    id: Optional[InstitutionID] = None
     display_name: Optional[str] = None
-    ror: Optional[HttpUrl] = None
+    ror: Optional[RorID] = None
     country_code: Optional[str] = None
-    type: Optional[str] = None
+    type: Optional[RorType] = None
 
 
 class Authorship(BaseModel):
     """Authorship of a paper"""
 
-    author_position: Optional[str] = None
+    author_position: Optional[AuthorPosition] = None
     author: Optional[Author] = None
     institutions: Optional[list[Institution]] = None
 
@@ -42,19 +63,17 @@ class APC(BaseModel):
 
     value: Optional[int] = None
     currency: Optional[str] = None
-    provenance: Optional[str] = None
+    provenance: Optional[ApcProvenance] = None
     value_usd: Optional[int] = None
 
 
-class OALocation(BaseModel):
-    """Open Access location of a paper"""
+class Biblio(BaseModel):
+    """Old-timey bibliographic info for this work"""
 
-    is_oa: Optional[bool] = None
-    landing_page_url: Optional[HttpUrl] = None
-    pdf_url: Optional[HttpUrl] = None
-    source: Optional[dict[str, bool | str | list[str] | HttpUrl | None]] = None
-    license: Optional[str] = None
-    version: Optional[str] = None
+    volume: Optional[str] = None
+    issue: Optional[str] = None
+    first_page: Optional[str] = None
+    last_page: Optional[str] = None
 
 
 class Concept(BaseModel):
@@ -65,6 +84,30 @@ class Concept(BaseModel):
     display_name: Optional[str] = None
     level: Optional[int] = None
     score: Optional[float] = None
+
+
+class ExternalIDs(BaseModel):
+    """
+    All the external identifiers that we know about for this work.
+    IDs are expressed as URIs whenever possible.
+    """
+
+    doi: Optional[DOI] = None
+    mag: Optional[int] = None
+    openalex: Optional[WorkID] = None
+    pmid: Optional[PMID] = None
+    pmcid: Optional[PMCID] = None
+
+
+class OALocation(BaseModel):
+    """Open Access location of a paper"""
+
+    is_oa: Optional[bool] = None
+    landing_page_url: Optional[HttpUrl] = None
+    pdf_url: Optional[HttpUrl] = None
+    source: Optional[dict[str, bool | str | list[str] | HttpUrl | None]] = None
+    license: Optional[str] = None
+    version: Optional[OALocationVersion] = None
 
 
 class YearCount(BaseModel):
@@ -126,7 +169,7 @@ class WorkObject(BaseModel):
     apc_list: Optional[APC] = None
     apc_paid: Optional[APC] = None
     best_oa_location: Optional[OALocation] = None
-    biblio: Optional[dict[str, str | None]] = None
+    biblio: Optional[Biblio] = None
     cited_by_api_url: Optional[HttpUrl] = None
     cited_by_count: Optional[int] = None
     concepts: Optional[list[Concept]] = None
@@ -134,14 +177,14 @@ class WorkObject(BaseModel):
     corresponding_institution_ids: Optional[list[HttpUrl]] = None
     countries_distinct_count: Optional[int] = None
     counts_by_year: Optional[list[YearCount]] = None
-    created_date: Optional[str] = None
+    created_date: Optional[date] = None
     display_name: Optional[str] = None
     doi: Optional[HttpUrl] = None
     fulltext_origin: Optional[str] = None
     grants: Optional[list[Grant]] = None
     has_fulltext: Optional[bool] = None
     id: Optional[HttpUrl] = None
-    ids: Optional[dict[str, HttpUrl | int | None]] = None
+    ids: Optional[ExternalIDs] = None
     institutions_distinct_count: Optional[int] = None
     is_paratext: Optional[bool] = None
     is_retracted: Optional[bool] = None
@@ -153,7 +196,7 @@ class WorkObject(BaseModel):
     ngrams_url: Optional[HttpUrl] = None
     open_access: Optional[OpenAccess] = None
     primary_location: Optional[OALocation] = None
-    publication_date: Optional[str] = None
+    publication_date: Optional[date] = None
     publication_year: Optional[int] = None
     referenced_works: Optional[list[HttpUrl]] = None
     related_works: Optional[list[HttpUrl]] = None
@@ -161,7 +204,7 @@ class WorkObject(BaseModel):
     title: Optional[str] = None
     type: Optional[str] = None
     type_crossref: Optional[str] = None
-    updated_date: Optional[str] = None
+    updated_date: Optional[datetime] = None
 
 
 class WorkNGram(BaseModel):
