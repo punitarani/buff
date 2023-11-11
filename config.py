@@ -1,6 +1,9 @@
 """config.py"""
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 PROJECT_PATH = Path(__file__).parent
@@ -11,3 +14,15 @@ if not DATA_DIR.exists():
 
 
 EMAIL = "email@gmail.com"
+
+# Load .env
+load_dotenv(".env")
+
+
+# Redis
+REDIS_HOST = os.getenv("REDISHOST")
+REDIS_PORT = os.getenv("REDISPORT")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+assert REDIS_HOST, "REDIS_HOST environment variable not set"
+assert REDIS_PORT, "REDIS_PORT environment variable not set"
+assert REDIS_PASSWORD, "REDIS_PASSWORD environment variable not set"
