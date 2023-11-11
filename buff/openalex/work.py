@@ -11,6 +11,7 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+from pydantic import ValidationError
 
 from config import EMAIL
 
@@ -126,6 +127,8 @@ class Work:
                 break
 
             new_citations = data["results"]
+            if not new_citations:
+                break
             citations.extend(new_citations)
 
             if total_citations is None:
@@ -139,7 +142,13 @@ class Work:
                 break
             page += 1
 
-        return [WorkObject(**work) for work in citations]
+        works = []
+        for work in citations:
+            try:
+                works.append(WorkObject(**work))
+            except ValidationError:
+                pass
+        return works
 
     async def references(self, limit: int = 1000) -> list[WorkObject]:
         """
@@ -169,6 +178,8 @@ class Work:
                 break
 
             new_references = data["results"]
+            if not new_references:
+                break
             references.extend(new_references)
 
             if total_references is None:
@@ -182,4 +193,10 @@ class Work:
                 break
             page += 1
 
-        return [WorkObject(**work) for work in references]
+        works = []
+        for work in references:
+            try:
+                works.append(WorkObject(**work))
+            except ValidationError:
+                pass
+        return works
