@@ -6,14 +6,17 @@ from buff.openalex import Work
 from buff.openalex.utils import parse_id_from_url
 
 
-async def build_network_around_work(entity_id: str, depth: int = 3, limit: int = 100) -> tuple[set, set]:
+async def build_network_around_work(entity_id: str, depth: int = 3, limit: int = 100, max_concurrent_requests: int = 10) -> tuple[set, set]:
     """
-    Build a network around a given work, including both citations and references.
+    Build a network around a given work,
+    including both citations and references,
+    using batching and controlled concurrency.
 
     Args:
         entity_id (str): The ID of the entity for which to build the network.
         depth (int): Maximum depth for fetching citations and references.
         limit (int): Maximum number of citations/references to fetch per work.
+        max_concurrent_requests (int): Maximum number of concurrent requests.
 
     Returns:
         tuple[set, set]: A tuple where the first element is a set of nodes (works),
@@ -21,6 +24,7 @@ async def build_network_around_work(entity_id: str, depth: int = 3, limit: int =
     """
     nodes = set()
     edges = set()
+    semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     async def process_work(work_id: str, current_depth: int) -> None:
         """
@@ -36,22 +40,28 @@ async def build_network_around_work(entity_id: str, depth: int = 3, limit: int =
         if current_depth > depth:
             return
 
-        citations, references = await asyncio.gather(
-            Work(work_id).citations(limit=limit),
-            Work(work_id).references(limit=limit)
-        )
+        async with semaphore:
+            citations_task = asyncio.create_task(Work(work_id).citations(limit=limit))
+            references_task = asyncio.create_task(Work(work_id).references(limit=limit))
+            citations, references = await asyncio.gather(citations_task, references_task)
 
+        tasks = []
         for citation in citations:
             citation_id = parse_id_from_url(citation.id)
             nodes.add(citation_id)
             edges.add((work_id, citation_id))
-            await process_work(citation_id, current_depth + 1)
+            if current_depth + 1 <= depth:
+                tasks.append(process_work(citation_id, current_depth + 1))
 
         for reference in references:
             reference_id = parse_id_from_url(reference.id)
             nodes.add(reference_id)
             edges.add((reference_id, work_id))
-            await process_work(reference_id, current_depth + 1)
+            if current_depth + 1 <= depth:
+                tasks.append(process_work(reference_id, current_depth + 1))
+
+        if tasks:
+            await asyncio.gather(*tasks)
 
     # Start processing with the initial work
     nodes.add(entity_id)
