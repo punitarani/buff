@@ -9,7 +9,7 @@ import asyncio
 import pandas as pd
 import streamlit as st
 
-from buff.openalex import find_similar_papers, get_openalex_work
+from buff.openalex_wrapper import find_similar_papers, get_openalex_work
 
 
 async def get_paper_data(paper) -> dict:

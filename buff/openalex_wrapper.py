@@ -1,4 +1,4 @@
-"""buff/openalex.py"""
+"""buff/openalex_wrapper.py"""
 
 import asyncio
 from json import JSONDecodeError
