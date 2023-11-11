@@ -105,13 +105,17 @@ class Work:
         Works that cite the given work. Incoming citations.
 
         Args:
-            limit (int): Maximum number of citations to fetch
+            limit (int): Maximum number of citations to fetch.
+                Default: 1000. Maximum: 10,000.
 
         Returns:
             list[WorkObject]: List of citations of the work
 
         TODO: add support for batched requests
         """
+        per_page: int = 200  # OpenAlex support 1-200 per page
+        limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
+
         url = f"https://api.openalex.org/works?filter=cites:{self.entity_id}"
 
         citations: list[dict] = []
@@ -121,7 +125,7 @@ class Work:
 
         while len(citations) < limit:
             try:
-                data = await self.__GET(url + f"&page={page}")
+                data = await self.__GET(url + f"&page={page}&per-page={per_page}")
             except Exception as e:
                 print(f"Error fetching data: {e}")
                 break
@@ -156,13 +160,17 @@ class Work:
         Works that the given work cites. Outgoing citations.
 
         Args:
-            limit (int): Maximum number of references to fetch
+            limit (int): Maximum number of references to fetch.
+                Default: 1000. Maximum: 10,000.
 
         Returns:
             list[WorkObject]: List of references to the work
 
         TODO: add support for batched requests
         """
+        per_page: int = 200  # OpenAlex support 1-200 per page
+        limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
+
         url = f"https://api.openalex.org/works?filter=cited_by:{self.entity_id}"
 
         references: list[dict] = []
@@ -172,7 +180,7 @@ class Work:
 
         while len(references) < limit:
             try:
-                data = await self.__GET(url + f"&page={page}")
+                data = await self.__GET(url + f"&page={page}&per-page={per_page}")
             except Exception as e:
                 print(f"Error fetching data: {e}")
                 break
