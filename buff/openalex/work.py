@@ -97,3 +97,89 @@ class Work:
         data = await self.__GET(url)
         self._data = WorkObject(**data)
         return self._data
+
+    async def citations(self, limit: int = 1000) -> list[WorkObject]:
+        """
+        Get the citations of the work from the OpenAlex API.
+        Works that cite the given work. Incoming citations.
+
+        Args:
+            limit (int): Maximum number of citations to fetch
+
+        Returns:
+            list[WorkObject]: List of citations of the work
+
+        TODO: add support for batched requests
+        """
+        url = f"https://api.openalex.org/works?filter=cites:{self.entity_id}"
+
+        citations: list[dict] = []
+        total_citations = None
+        page: int = 1
+        max_pages: int = 1
+
+        while len(citations) < limit:
+            try:
+                data = await self.__GET(url + f"&page={page}")
+            except Exception as e:
+                print(f"Error fetching data: {e}")
+                break
+
+            new_citations = data["results"]
+            citations.extend(new_citations)
+
+            if total_citations is None:
+                total_citations = data["meta"]["count"]
+                max_pages = (total_citations + len(new_citations) - 1) // len(
+                    new_citations
+                )
+                limit = min(limit, total_citations)
+
+            if page >= max_pages:
+                break
+            page += 1
+
+        return [WorkObject(**work) for work in citations]
+
+    async def references(self, limit: int = 1000) -> list[WorkObject]:
+        """
+        Get the references of the work from the OpenAlex API.
+        Works that the given work cites. Outgoing citations.
+
+        Args:
+            limit (int): Maximum number of references to fetch
+
+        Returns:
+            list[WorkObject]: List of references to the work
+
+        TODO: add support for batched requests
+        """
+        url = f"https://api.openalex.org/works?filter=cited_by:{self.entity_id}"
+
+        references: list[dict] = []
+        total_references = None
+        page: int = 1
+        max_pages: int = 1
+
+        while len(references) < limit:
+            try:
+                data = await self.__GET(url + f"&page={page}")
+            except Exception as e:
+                print(f"Error fetching data: {e}")
+                break
+
+            new_references = data["results"]
+            references.extend(new_references)
+
+            if total_references is None:
+                total_references = data["meta"]["count"]
+                max_pages = (total_references + len(new_references) - 1) // len(
+                    new_references
+                )
+                limit = min(limit, total_references)
+
+            if page >= max_pages:
+                break
+            page += 1
+
+        return [WorkObject(**work) for work in references]
