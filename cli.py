@@ -3,22 +3,26 @@
 import asyncio
 
 import pandas as pd
+from tqdm.asyncio import tqdm
 
 from buff.openalex import Work
 from buff.openalex.models import WorkObject
 
 
-async def get_papers(entity_id: str, max_depth: int = 1, max_count: int = 10) -> list[WorkObject]:
+async def get_papers(entity_id: str, max_depth: int = 25, max_count: int = 10000, batch_size: int = 10) -> list[WorkObject]:
     """
-    Get papers from the OpenAlex API without batching, with limits on depth and count.
+    Get papers from the OpenAlex API with batching, with limits on depth and count, and a customizable batch size.
 
     Args:
         entity_id (str): The ID of the entity for which to get papers.
         max_depth (int): Maximum depth for fetching referenced works.
         max_count (int): Maximum number of papers to fetch.
+        batch_size (int): Number of requests to batch together.
 
     Returns:
         List[WorkObject]: A list of WorkObject instances representing papers.
+
+    TODO: max_depth and/or max_count are not respected
     """
     papers: list[WorkObject] = []
     pending_entities = [entity_id]
@@ -30,36 +34,37 @@ async def get_papers(entity_id: str, max_depth: int = 1, max_count: int = 10) ->
             pending_entities, next_entities = next_entities, []
             max_depth -= 1
 
-        # Prepare a list of unprocessed entity IDs
         unprocessed_entities = [eid for eid in pending_entities if eid not in processed_entities]
+        batches = [unprocessed_entities[i:i + batch_size] for i in range(0, len(unprocessed_entities), batch_size)]
 
-        # Perform requests for all unprocessed entities
-        results = await asyncio.gather(
-            *(Work(eid).get() for eid in unprocessed_entities),
-            return_exceptions=False
-        )
+        for batch in batches:
+            # Use tqdm.gather for progress bar support
+            results = await tqdm.gather(
+                *(Work(eid).get() for eid in batch),
+                total=len(batch),
+                desc="Fetching papers"
+            )
 
-        # Reset pending_entities for the next iteration
+            for result in results:
+                if isinstance(result, Exception):
+                    print(f"Error during request: {result}")
+                else:
+                    papers.append(result)
+                    processed_entities.add(result.id)
+
+                    # Process results to get next entities
+                    for url in result.referenced_works:
+                        url = str(url)
+                        if url.startswith("https://openalex.org/"):
+                            next_entity_id = url[21:]
+                            if next_entity_id not in processed_entities:
+                                next_entities.append(next_entity_id)
+
+                # Early exit if max_count is reached
+                if len(papers) >= max_count:
+                    return papers
+
         pending_entities = []
-
-        for result in results:
-            if isinstance(result, Exception):
-                print(f"Error during request: {result}")
-            else:
-                papers.append(result)
-                processed_entities.add(result.id)
-
-                # Process results to get next entities
-                for url in result.referenced_works:
-                    url = str(url)
-                    if url.startswith("https://openalex.org/"):
-                        next_entity_id = url[21:]
-                        if next_entity_id not in processed_entities:
-                            next_entities.append(next_entity_id)
-
-            # Early exit if max_count is reached
-            if len(papers) >= max_count:
-                return papers
 
     return papers
 
