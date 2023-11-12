@@ -17,7 +17,7 @@ from config import EMAIL, mongo_client
 from .errors import OpenAlexError
 from .models import WorkObject
 
-limiter = AsyncLimiter(max_rate=10, time_period=2)
+limiter = AsyncLimiter(max_rate=10, time_period=1)
 
 
 class Work:
@@ -116,7 +116,7 @@ class Work:
         return self._data
 
     async def citations(
-        self, limit: int = 1000
+        self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the citations of the work from the OpenAlex API.
@@ -125,6 +125,7 @@ class Work:
         Args:
             limit (int): Maximum number of citations to fetch.
                 Default: 1000. Maximum: 10,000.
+            save_all (bool): Whether to save all the citations beyond the limit.
 
         Returns:
             tuple[list[str], dict[str, WorkObject]]:
@@ -142,6 +143,8 @@ class Work:
             citation_works_cursor = self.mongo_collection_works.find(
                 {"id": {"$in": citation_ids}}
             )
+
+            # TODO: what happens if the cursor is missing some works?
             citation_works = {
                 work["id"]: WorkObject(**work) async for work in citation_works_cursor
             }
@@ -201,18 +204,31 @@ class Work:
             upsert=True
         )
 
-        # Save the Citation Works to MongoDB
-        for citation_work in citation_works.values():
-            await self.mongo_collection_works.update_one(
-                filter={"id": str(citation_work.id)},
-                update={"$set": citation_work.model_dump(mode="json")},
-                upsert=True,
-            )
+        if save_all:
+            # Save the Citation Works to MongoDB
+            for citation_work in citation_works.values():
+                await self.mongo_collection_works.update_one(
+                    filter={"id": str(citation_work.id)},
+                    update={"$set": citation_work.model_dump(mode="json")},
+                    upsert=True,
+                )
 
-        return citation_ids, citation_works
+            return citation_ids, citation_works
+        else:
+            return_citations = {}
+            # Save only the Works within the limit to MongoDB
+            for cit_id in citation_ids[:limit]:
+                citation_work = citation_works[cit_id]
+                return_citations[cit_id] = citation_work
+                await self.mongo_collection_works.update_one(
+                    filter={"id": str(citation_work.id)},
+                    update={"$set": citation_work.model_dump(mode="json")},
+                    upsert=True,
+                )
+            return citation_ids[:limit], return_citations
 
     async def references(
-        self, limit: int = 1000
+        self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the references of the work from the OpenAlex API.
@@ -221,6 +237,7 @@ class Work:
         Args:
             limit (int): Maximum number of references to fetch.
                 Default: 1000. Maximum: 10,000.
+            save_all (bool): Whether to save all the citations beyond the limit.
 
         Returns:
             tuple[list[str], dict[str, WorkObject]]:
@@ -238,6 +255,8 @@ class Work:
             reference_works_cursor = self.mongo_collection_works.find(
                 {"id": {"$in": reference_ids}}
             )
+
+            # TODO: what happens if the cursor is missing some works?
             reference_works = {
                 work["id"]: WorkObject(**work) async for work in reference_works_cursor
             }
@@ -297,12 +316,25 @@ class Work:
             upsert=True,
         )
 
-        # Save the Reference Works to MongoDB
-        for reference_work in reference_works.values():
-            await self.mongo_collection_works.update_one(
-                filter={"id": str(reference_work.id)},
-                update={"$set": reference_work.model_dump(mode="json")},
-                upsert=True,
-            )
+        if save_all:
+            # Save the Reference Works to MongoDB
+            for reference_work in reference_works.values():
+                await self.mongo_collection_works.update_one(
+                    filter={"id": str(reference_work.id)},
+                    update={"$set": reference_work.model_dump(mode="json")},
+                    upsert=True,
+                )
 
-        return reference_ids, reference_works
+            return reference_ids, reference_works
+        else:
+            return_references = {}
+            # Save only the Works within the limit to MongoDB
+            for ref_id in reference_ids[:limit]:
+                reference_work = reference_works[ref_id]
+                return_references[ref_id] = reference_work
+                await self.mongo_collection_works.update_one(
+                    filter={"id": str(reference_work.id)},
+                    update={"$set": reference_work.model_dump(mode="json")},
+                    upsert=True,
+                )
+            return reference_ids[:limit], return_references
