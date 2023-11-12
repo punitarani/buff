@@ -58,8 +58,9 @@ async def build_network_around_work(
             references_ids, _ = references_result
 
             # Update max_items and progress bar after obtaining the ids
-            max_items += len(citations_ids[:limit]) + len(references_ids[:limit])
-            pbar.total = max_items
+            if current_depth < depth:
+                max_items += len(citations_ids[:limit]) + len(references_ids[:limit])
+                pbar.total = max_items
             pbar.set_description(
                 f"Depth: {current_depth} | Processed: {total_items_processed}/{max_items}"
             )
@@ -68,13 +69,13 @@ async def build_network_around_work(
             for citation_id in citations_ids[:limit]:
                 nodes.add(citation_id)
                 edges.add((current_work, citation_id))
-                if current_depth + 1 <= depth:
+                if current_depth <= depth:
                     await queue.put((parse_id_from_url(citation_id), current_depth + 1))
 
             for reference_id in references_ids[:limit]:
                 nodes.add(reference_id)
                 edges.add((reference_id, current_work))
-                if current_depth + 1 <= depth:
+                if current_depth <= depth:
                     await queue.put(
                         (parse_id_from_url(reference_id), current_depth + 1)
                     )
