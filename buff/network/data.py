@@ -6,7 +6,9 @@ from buff.openalex import Work
 from buff.openalex.utils import parse_id_from_url
 
 
-async def build_network_around_work(entity_id: str, depth: int = 3, limit: int = 100, max_concurrent_requests: int = 10) -> tuple[set, set]:
+async def build_network_around_work(
+    entity_id: str, depth: int = 3, limit: int = 100, max_concurrent_requests: int = 10
+) -> tuple[set, set]:
     """
     Build a network around a given work,
     including both citations and references,
@@ -43,7 +45,9 @@ async def build_network_around_work(entity_id: str, depth: int = 3, limit: int =
         async with semaphore:
             citations_task = asyncio.create_task(Work(work_id).citations(limit=limit))
             references_task = asyncio.create_task(Work(work_id).references(limit=limit))
-            citations, references = await asyncio.gather(citations_task, references_task)
+            citations, references = await asyncio.gather(
+                citations_task, references_task
+            )
 
         tasks = []
         for citation in citations:
@@ -70,7 +74,9 @@ async def build_network_around_work(entity_id: str, depth: int = 3, limit: int =
     return nodes, edges
 
 
-async def get_citations_recursively(entity_id: str, depth: int = 3, limit: int = 100) -> list[dict]:
+async def get_citations_recursively(
+    entity_id: str, depth: int = 3, limit: int = 100
+) -> list[dict]:
     """
     Get citations of a paper recursively.
 
@@ -89,14 +95,18 @@ async def get_citations_recursively(entity_id: str, depth: int = 3, limit: int =
     result = []
     for citation in citations:
         citation_dict = citation.model_dump()
-        child_citations = await get_citations_recursively(parse_id_from_url(citation.id), depth - 1, limit)
-        citation_dict['child_citations'] = child_citations
+        child_citations = await get_citations_recursively(
+            parse_id_from_url(citation.id), depth - 1, limit
+        )
+        citation_dict["child_citations"] = child_citations
         result.append(citation_dict)
 
     return result
 
 
-async def get_references_recursively(entity_id: str, depth: int = 3, limit: int = 100) -> list[dict]:
+async def get_references_recursively(
+    entity_id: str, depth: int = 3, limit: int = 100
+) -> list[dict]:
     """
     Get references of a paper recursively.
 
@@ -115,8 +125,10 @@ async def get_references_recursively(entity_id: str, depth: int = 3, limit: int 
     result = []
     for reference in references:
         reference_dict = reference.model_dump()
-        child_references = await get_references_recursively(parse_id_from_url(reference.id), depth - 1, limit)
-        reference_dict['child_references'] = child_references
+        child_references = await get_references_recursively(
+            parse_id_from_url(reference.id), depth - 1, limit
+        )
+        reference_dict["child_references"] = child_references
         result.append(reference_dict)
 
     return result
