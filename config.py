@@ -16,7 +16,8 @@ if not DATA_DIR.exists():
 EMAIL = "email@gmail.com"
 
 # Load .env
-load_dotenv(".env")
+__loaded_env = load_dotenv(".env")
+assert __loaded_env, "Could not load .env file"
 
 
 # Redis
