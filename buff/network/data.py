@@ -45,20 +45,22 @@ async def build_network_around_work(
         async with semaphore:
             citations_task = asyncio.create_task(Work(work_id).citations(limit=limit))
             references_task = asyncio.create_task(Work(work_id).references(limit=limit))
-            citations, references = await asyncio.gather(
+            citations_result, references_result = await asyncio.gather(
                 citations_task, references_task
             )
 
+        # Unpack results for citations and references
+        citations_ids, citations_works = citations_result
+        references_ids, references_works = references_result
+
         tasks = []
-        for citation in citations:
-            citation_id = parse_id_from_url(citation.id)
+        for citation_id in citations_ids:
             nodes.add(citation_id)
             edges.add((work_id, citation_id))
             if current_depth + 1 <= depth:
                 tasks.append(process_work(citation_id, current_depth + 1))
 
-        for reference in references:
-            reference_id = parse_id_from_url(reference.id)
+        for reference_id in references_ids:
             nodes.add(reference_id)
             edges.add((reference_id, work_id))
             if current_depth + 1 <= depth:
@@ -76,28 +78,36 @@ async def build_network_around_work(
 
 async def get_citations_recursively(
     entity_id: str, depth: int = 3, limit: int = 100
-) -> list[dict]:
+) -> list[dict[str, str]]:
     """
-    Get citations of a paper recursively.
+    Recursively fetches citations for a specified work and its citations up to a given depth.
+
+    This function retrieves the citations of a work identified by `entity_id` and then
+    recursively fetches citations for each of those citations. This process is repeated
+    up to the specified depth.
 
     Args:
-        entity_id (str): The ID of the entity for which to get citations.
-        depth (int): Maximum depth for fetching citations.
-        limit (int): Maximum number of citations to fetch.
+        entity_id (str): The ID of the work for which to fetch citations.
+        depth (int): The maximum depth of recursion for fetching citations.
+                     Depth 0 means no recursive fetching, just the citations of the initial work.
+        limit (int): The maximum number of citations to fetch for each work.
 
     Returns:
-        List[dict]: A list of citations of the paper.
+        list[dict]: A list of dictionaries, each representing a citation. Each dictionary includes
+                    the citation details and a key 'child_citations' which is a list of citations
+                    for that particular work, fetched recursively up to the specified depth.
     """
     if depth == 0:
         return []
 
-    citations = await Work(entity_id=entity_id).citations(limit=limit)
+    citations_ids, citations_works = await Work(entity_id=entity_id).citations(
+        limit=limit
+    )
     result = []
-    for citation in citations:
+    for citation_id in citations_ids:
+        citation = citations_works[citation_id]
         citation_dict = citation.model_dump()
-        child_citations = await get_citations_recursively(
-            parse_id_from_url(citation.id), depth - 1, limit
-        )
+        child_citations = await get_citations_recursively(citation_id, depth - 1, limit)
         citation_dict["child_citations"] = child_citations
         result.append(citation_dict)
 
@@ -108,25 +118,35 @@ async def get_references_recursively(
     entity_id: str, depth: int = 3, limit: int = 100
 ) -> list[dict]:
     """
-    Get references of a paper recursively.
+    Recursively fetches references for a specified work and its references up to a given depth.
+
+    This function retrieves the references of a work identified by `entity_id` and then
+    recursively fetches references for each of those references. This process is repeated
+    up to the specified depth.
 
     Args:
-        entity_id (str): The ID of the entity for which to get references.
-        depth (int): Maximum depth for fetching references.
-        limit (int): Maximum number of references to fetch.
+        entity_id (str): The ID of the work for which to fetch references.
+        depth (int): The maximum depth of recursion for fetching references.
+                     Depth 0 means no recursive fetching, just the references of the initial work.
+        limit (int): The maximum number of references to fetch for each work.
 
     Returns:
-        List[dict]: A list of references of the paper.
+        list[dict]: A list of dictionaries, each representing a reference. Each dictionary includes
+                    the reference details and a key 'child_references' which is a list of references
+                    for that particular work, fetched recursively up to the specified depth.
     """
     if depth == 0:
         return []
 
-    references = await Work(entity_id=entity_id).references(limit=limit)
+    references_ids, references_works = await Work(entity_id=entity_id).references(
+        limit=limit
+    )
     result = []
-    for reference in references:
+    for reference_id in references_ids:
+        reference = references_works[reference_id]
         reference_dict = reference.model_dump()
         child_references = await get_references_recursively(
-            parse_id_from_url(reference.id), depth - 1, limit
+            reference_id, depth - 1, limit
         )
         reference_dict["child_references"] = child_references
         result.append(reference_dict)

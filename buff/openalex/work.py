@@ -62,10 +62,6 @@ class Work:
             | retry_if_exception_type(OpenAlexError)
         ),
     )
-    @cached(
-        **aiocache_redis_config,
-        key_builder=lambda func, self, url, *args, **kwargs: url,
-    )
     async def __GET(self, url: str) -> dict:
         """
         GET request to the OpenAlex API.
@@ -99,7 +95,7 @@ class Work:
         self._data = WorkObject(**data)
         return self._data
 
-    async def citations(self, limit: int = 1000) -> list[WorkObject]:
+    async def citations(self, limit: int = 1000) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the citations of the work from the OpenAlex API.
         Works that cite the given work. Incoming citations.
@@ -109,11 +105,13 @@ class Work:
                 Default: 1000. Maximum: 10,000.
 
         Returns:
-            list[WorkObject]: List of citations of the work
+            tuple[list[str], dict[str, WorkObject]]:
+                - List of IDs URLs of the citations
+                - Dictionary of {id: WorkObject} of all the citation works
 
         TODO: add support for batched requests
         """
-        per_page: int = 200  # OpenAlex support 1-200 per page
+        per_page: int = 200  # OpenAlex supports 1-200 per page
         limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
 
         url = f"https://api.openalex.org/works?filter=cites:{self.entity_id}"
@@ -122,6 +120,9 @@ class Work:
         total_citations = None
         page: int = 1
         max_pages: int = 1
+
+        citation_ids = []
+        citation_works = {}
 
         while len(citations) < limit:
             try:
@@ -135,26 +136,28 @@ class Work:
                 break
             citations.extend(new_citations)
 
+            for citation in new_citations:
+                try:
+                    citation_id = citation.get('id')
+                    if citation_id:
+                        citation_ids.append(citation_id)
+                        citation_works[citation_id] = WorkObject(**citation)
+                    # TODO: handle citations without IDs (shouldn't happen)
+                except OpenAlexError or ValidationError:
+                    pass
+
             if total_citations is None:
                 total_citations = data["meta"]["count"]
-                max_pages = (total_citations + len(new_citations) - 1) // len(
-                    new_citations
-                )
+                max_pages = (total_citations + len(new_citations) - 1) // len(new_citations)
                 limit = min(limit, total_citations)
 
             if page >= max_pages:
                 break
             page += 1
 
-        works = []
-        for work in citations:
-            try:
-                works.append(WorkObject(**work))
-            except ValidationError:
-                pass
-        return works
+        return citation_ids, citation_works
 
-    async def references(self, limit: int = 1000) -> list[WorkObject]:
+    async def references(self, limit: int = 1000) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the references of the work from the OpenAlex API.
         Works that the given work cites. Outgoing citations.
@@ -164,11 +167,11 @@ class Work:
                 Default: 1000. Maximum: 10,000.
 
         Returns:
-            list[WorkObject]: List of references to the work
-
-        TODO: add support for batched requests
+            tuple[list[str], dict[str, WorkObject]]:
+                - List of IDs URLs of the references
+                - Dictionary of {id: WorkObject} of all the referenced works
         """
-        per_page: int = 200  # OpenAlex support 1-200 per page
+        per_page: int = 200  # OpenAlex supports 1-200 per page
         limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
 
         url = f"https://api.openalex.org/works?filter=cited_by:{self.entity_id}"
@@ -177,6 +180,9 @@ class Work:
         total_references = None
         page: int = 1
         max_pages: int = 1
+
+        reference_ids = []
+        reference_works = {}
 
         while len(references) < limit:
             try:
@@ -190,21 +196,22 @@ class Work:
                 break
             references.extend(new_references)
 
+            for reference in new_references:
+                try:
+                    reference_id = reference.get('id')  # Assuming 'id' is the key for reference ID
+                    if reference_id:
+                        reference_ids.append(reference_id)
+                        reference_works[reference_id] = WorkObject(**reference)
+                except ValidationError:
+                    pass
+
             if total_references is None:
                 total_references = data["meta"]["count"]
-                max_pages = (total_references + len(new_references) - 1) // len(
-                    new_references
-                )
+                max_pages = (total_references + len(new_references) - 1) // len(new_references)
                 limit = min(limit, total_references)
 
             if page >= max_pages:
                 break
             page += 1
 
-        works = []
-        for work in references:
-            try:
-                works.append(WorkObject(**work))
-            except ValidationError:
-                pass
-        return works
+        return reference_ids, reference_works
