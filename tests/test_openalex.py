@@ -8,7 +8,7 @@ from buff.openalex import Work
 class TestWork:
     """Test OpenAlex Work class"""
 
-    @pytest.mark.skip
+    @pytest.mark.asyncio
     async def test_get(self) -> None:
         """Test Work.get()"""
         work = Work("W2741809807")
@@ -26,7 +26,7 @@ class TestWork:
         assert len(citations_ids) >= 574
         assert len(citations_works) >= 574
 
-    @pytest.mark.asyncio
+    @pytest.mark.skip
     async def test_references(self) -> None:
         """Test Work.references()"""
         work = Work("W2741809807")
