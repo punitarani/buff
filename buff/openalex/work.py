@@ -201,7 +201,7 @@ class Work:
         await self.mongo_collection_citations.update_one(
             filter={"id": self.idx},
             update={"$set": {"citations": citation_ids}},
-            upsert=True
+            upsert=True,
         )
 
         if save_all:
