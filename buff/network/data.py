@@ -54,13 +54,13 @@ async def build_network_around_work(
         references_ids, references_works = references_result
 
         tasks = []
-        for citation_id in citations_ids:
+        for citation_id in citations_ids[:limit]:
             nodes.add(citation_id)
             edges.add((work_id, citation_id))
             if current_depth + 1 <= depth:
                 tasks.append(process_work(parse_id_from_url(citation_id), current_depth + 1))
 
-        for reference_id in references_ids:
+        for reference_id in references_ids[:limit]:
             nodes.add(reference_id)
             edges.add((reference_id, work_id))
             if current_depth + 1 <= depth:
