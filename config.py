@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from motor.motor_asyncio import AsyncIOMotorClient
+
 
 PROJECT_PATH = Path(__file__).parent
 
@@ -18,6 +20,20 @@ EMAIL = "email@gmail.com"
 # Load .env
 __loaded_env = load_dotenv(".env")
 assert __loaded_env, "Could not load .env file"
+
+
+# Mongo
+MONGO_HOST = os.getenv("MONGO_HOST")
+MONGO_DB = os.getenv("MONGO_DB")
+MONGO_USERNAME = os.getenv("MONGO_USER")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+assert MONGO_HOST, "MONGO_HOST environment variable not set"
+assert MONGO_DB, "MONGO_DB environment variable not set"
+assert MONGO_USERNAME, "MONGO_USERNAME environment variable not set"
+assert MONGO_PASSWORD, "MONGO_PASSWORD environment variable not set"
+
+MONGO_URI = f"mongodb+srv://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_DB}.{MONGO_HOST}/?retryWrites=true&w=majority"
+mongo_client = AsyncIOMotorClient(MONGO_URI)
 
 
 # Redis
