@@ -2,6 +2,8 @@
 
 import asyncio
 
+from tqdm import tqdm
+
 from buff.openalex import Work
 from buff.openalex.utils import parse_id_from_url
 
@@ -28,50 +30,44 @@ async def build_network_around_work(
     edges = set()
     semaphore = asyncio.Semaphore(max_concurrent_requests)
 
-    async def process_work(work_id: str, current_depth: int) -> None:
-        """
-        Process a work and its citations/references recursively.
+    queue = asyncio.Queue()
+    await queue.put((entity_id, 0))
 
-        Args:
-            work_id (str): The ID of the work to process.
-            current_depth (int): The current depth of the recursion.
+    # Initialize tqdm progress bar
+    pbar = tqdm(total=1, desc="Processing network", dynamic_ncols=True)
 
-        Returns:
-            None, but adds nodes and edges to the global sets.
-        """
+    while not queue.empty():
+        current_work, current_depth = await queue.get()
+        pbar.update(1)  # Update progress bar
+
         if current_depth > depth:
-            return
+            continue
 
         async with semaphore:
-            citations_task = asyncio.create_task(Work(work_id).citations(limit=limit))
-            references_task = asyncio.create_task(Work(work_id).references(limit=limit))
+            citations_task = asyncio.create_task(Work(current_work).citations(limit=limit))
+            references_task = asyncio.create_task(Work(current_work).references(limit=limit))
             citations_result, references_result = await asyncio.gather(
                 citations_task, references_task
             )
 
-        # Unpack results for citations and references
-        citations_ids, citations_works = citations_result
-        references_ids, references_works = references_result
+        citations_ids, _ = citations_result
+        references_ids, _ = references_result
 
-        tasks = []
         for citation_id in citations_ids[:limit]:
             nodes.add(citation_id)
-            edges.add((work_id, citation_id))
+            edges.add((current_work, citation_id))
             if current_depth + 1 <= depth:
-                tasks.append(process_work(parse_id_from_url(citation_id), current_depth + 1))
+                await queue.put((parse_id_from_url(citation_id), current_depth + 1))
+                pbar.total += 1
 
         for reference_id in references_ids[:limit]:
             nodes.add(reference_id)
-            edges.add((reference_id, work_id))
+            edges.add((reference_id, current_work))
             if current_depth + 1 <= depth:
-                tasks.append(process_work(parse_id_from_url(reference_id), current_depth + 1))
+                await queue.put((parse_id_from_url(reference_id), current_depth + 1))
+                pbar.total += 1
 
-        if tasks:
-            await asyncio.gather(*tasks)
-
-    # Start processing with the initial work
-    nodes.add(entity_id)
-    await process_work(entity_id, 1)
+    pbar.close()
 
     return nodes, edges
 
