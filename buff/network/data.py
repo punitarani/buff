@@ -58,13 +58,13 @@ async def build_network_around_work(
             nodes.add(citation_id)
             edges.add((work_id, citation_id))
             if current_depth + 1 <= depth:
-                tasks.append(process_work(citation_id, current_depth + 1))
+                tasks.append(process_work(parse_id_from_url(citation_id), current_depth + 1))
 
         for reference_id in references_ids:
             nodes.add(reference_id)
             edges.add((reference_id, work_id))
             if current_depth + 1 <= depth:
-                tasks.append(process_work(reference_id, current_depth + 1))
+                tasks.append(process_work(parse_id_from_url(reference_id), current_depth + 1))
 
         if tasks:
             await asyncio.gather(*tasks)

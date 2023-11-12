@@ -45,7 +45,7 @@ class Work:
 
         # Ensure the Entity ID is valid
         if not entity_id.startswith("W"):
-            raise OpenAlexError("Invalid Entity ID")
+            raise OpenAlexError(f"Invalid Entity ID: {entity_id}")
         self.entity_id: str = entity_id
 
         self.idx: str = f"{self.BASE_URL}{self.entity_id}"
@@ -271,12 +271,11 @@ class Work:
 
             for reference in new_references:
                 try:
-                    reference_id = reference.get(
-                        "id"
-                    )  # Assuming 'id' is the key for reference ID
+                    reference_id = reference.get("id")
                     if reference_id:
                         reference_ids.append(reference_id)
                         reference_works[reference_id] = WorkObject(**reference)
+                    # TODO: handle references without IDs (shouldn't happen)
                 except ValidationError:
                     pass
 
