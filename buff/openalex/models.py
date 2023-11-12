@@ -22,7 +22,7 @@ OALocationVersion = Annotated[str, StringConstraints(pattern=r'^(publishedVersio
 
 DOI = Annotated[str, StringConstraints(pattern=r'https:\/\/doi\.org\/10\.\d{4,9}\/[\S]+$')]
 PMID = Annotated[str, StringConstraints(pattern=r'^https://pubmed\.ncbi\.nlm\.nih\.gov/\d+$')]
-PMCID = Annotated[str, StringConstraints(pattern=r'^https://www\.ncbi\.nlm\.nih\.gov/pmc/articles/PMC\d+$')]
+PMCID = Annotated[str, StringConstraints(pattern=r'^https://www\.ncbi\.nlm\.nih(\.[\S]*)?/pmc/articles/(PMC)?\d+$')]
 # fmt: on
 
 

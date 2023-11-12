@@ -11,6 +11,7 @@ python = "^3.11 <3.12"
 aiocache = {extras = ["redis"], version = "^0.12.2"}
 aiolimiter = "^1.1.0"
 httpx = "^0.25.1"
+motor = "^3.3.1"
 pydantic = "^2.4.2"
 python-dotenv = "^1.0.0"
 streamlit = "^1.28.1"

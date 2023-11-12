@@ -3,19 +3,17 @@
 from json import JSONDecodeError
 
 import httpx
-from aiocache import cached
 from aiolimiter import AsyncLimiter
+from pydantic import ValidationError
 from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-from pydantic import ValidationError
 
-from config import EMAIL
+from config import EMAIL, mongo_client
 
-from .config import aiocache_redis_config
 from .errors import OpenAlexError
 from .models import WorkObject
 
@@ -29,20 +27,28 @@ class Work:
     Works are scholarly documents like journal articles, books, datasets, and theses
     """
 
-    BASE_URL = "https://api.openalex.org/works/"
+    API_URL = "https://api.openalex.org/works/"
+    BASE_URL = "https://openalex.org/"
 
-    def __init__(self, entity_id: str | None):
+    mongo_db_openalex = mongo_client["openalex"]
+    mongo_collection_works = mongo_db_openalex["works"]
+    mongo_collection_citations = mongo_db_openalex["citations"]
+    mongo_collection_references = mongo_db_openalex["references"]
+
+    def __init__(self, entity_id: str) -> None:
         """
         Initialize the Work object.
 
         Args:
-            entity_id (str | None): Entity ID of the work
+            entity_id (str): Entity ID of the work
         """
 
         # Ensure the Entity ID is valid
         if not entity_id.startswith("W"):
-            raise OpenAlexError("Invalid Entity ID")
-        self.entity_id: str | None = entity_id
+            raise OpenAlexError(f"Invalid Entity ID: {entity_id}")
+        self.entity_id: str = entity_id
+
+        self.idx: str = f"{self.BASE_URL}{self.entity_id}"
 
         self._data: WorkObject | None = None
 
@@ -61,10 +67,6 @@ class Work:
             | retry_if_exception_type(httpx.ConnectTimeout)
             | retry_if_exception_type(OpenAlexError)
         ),
-    )
-    @cached(
-        **aiocache_redis_config,
-        key_builder=lambda func, self, url, *args, **kwargs: url,
     )
     async def __GET(self, url: str) -> dict:
         """
@@ -93,13 +95,29 @@ class Work:
         Returns:
             dict: Work data
         """
-        url = f"{self.BASE_URL}{self.entity_id}"
+        # Try to get the work data from MongoDB
+        data = await self.mongo_collection_works.find_one({"id": self.idx})
+        if data:
+            # Deserialize data into WorkObject
+            self._data = WorkObject(**data)
+            return self._data
 
+        url = f"{self.API_URL}{self.entity_id}"
+
+        # Get the work data from the OpenAlex API
         data = await self.__GET(url)
         self._data = WorkObject(**data)
+
+        # Serialize WorkObject data into a dict and save to MongoDB
+        await self.mongo_collection_works.update_one(
+            update=self._data.model_dump(mode="json"), upsert=True
+        )
+
         return self._data
 
-    async def citations(self, limit: int = 1000) -> list[WorkObject]:
+    async def citations(
+        self, limit: int = 1000
+    ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the citations of the work from the OpenAlex API.
         Works that cite the given work. Incoming citations.
@@ -109,11 +127,28 @@ class Work:
                 Default: 1000. Maximum: 10,000.
 
         Returns:
-            list[WorkObject]: List of citations of the work
+            tuple[list[str], dict[str, WorkObject]]:
+                - List of IDs URLs of the citations
+                - Dictionary of {id: WorkObject} of all the citation works
 
         TODO: add support for batched requests
         """
-        per_page: int = 200  # OpenAlex support 1-200 per page
+        # Try to get the citations from MongoDB
+        db_citations = await self.mongo_collection_citations.find_one({"id": self.idx})
+        if db_citations:
+            citation_ids = db_citations["citations"][:limit]
+
+            # Fetch all citation works in a single query
+            citation_works_cursor = self.mongo_collection_works.find(
+                {"id": {"$in": citation_ids}}
+            )
+            citation_works = {
+                work["id"]: WorkObject(**work) async for work in citation_works_cursor
+            }
+
+            return citation_ids, citation_works
+
+        per_page: int = 200  # OpenAlex supports 1-200 per page
         limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
 
         url = f"https://api.openalex.org/works?filter=cites:{self.entity_id}"
@@ -122,6 +157,9 @@ class Work:
         total_citations = None
         page: int = 1
         max_pages: int = 1
+
+        citation_ids = []
+        citation_works = {}
 
         while len(citations) < limit:
             try:
@@ -135,6 +173,16 @@ class Work:
                 break
             citations.extend(new_citations)
 
+            for citation in new_citations:
+                try:
+                    citation_id = citation.get("id")
+                    if citation_id:
+                        citation_ids.append(citation_id)
+                        citation_works[citation_id] = WorkObject(**citation)
+                    # TODO: handle citations without IDs (shouldn't happen)
+                except OpenAlexError or ValidationError:
+                    pass
+
             if total_citations is None:
                 total_citations = data["meta"]["count"]
                 max_pages = (total_citations + len(new_citations) - 1) // len(
@@ -146,15 +194,26 @@ class Work:
                 break
             page += 1
 
-        works = []
-        for work in citations:
-            try:
-                works.append(WorkObject(**work))
-            except ValidationError:
-                pass
-        return works
+        # Save the Citation IDs to MongoDB
+        await self.mongo_collection_citations.update_one(
+            filter={"id": self.idx},
+            update={"$set": {"citations": citation_ids}},
+            upsert=True
+        )
 
-    async def references(self, limit: int = 1000) -> list[WorkObject]:
+        # Save the Citation Works to MongoDB
+        for citation_work in citation_works.values():
+            await self.mongo_collection_works.update_one(
+                filter={"id": str(citation_work.id)},
+                update={"$set": citation_work.model_dump(mode="json")},
+                upsert=True,
+            )
+
+        return citation_ids, citation_works
+
+    async def references(
+        self, limit: int = 1000
+    ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the references of the work from the OpenAlex API.
         Works that the given work cites. Outgoing citations.
@@ -164,11 +223,28 @@ class Work:
                 Default: 1000. Maximum: 10,000.
 
         Returns:
-            list[WorkObject]: List of references to the work
-
-        TODO: add support for batched requests
+            tuple[list[str], dict[str, WorkObject]]:
+                - List of IDs URLs of the references
+                - Dictionary of {id: WorkObject} of all the referenced works
         """
-        per_page: int = 200  # OpenAlex support 1-200 per page
+        # Try to get the references from MongoDB
+        db_references = await self.mongo_collection_references.find_one(
+            {"id": self.idx}
+        )
+        if db_references:
+            reference_ids = db_references["references"][:limit]
+
+            # Fetch all reference works in a single query
+            reference_works_cursor = self.mongo_collection_works.find(
+                {"id": {"$in": reference_ids}}
+            )
+            reference_works = {
+                work["id"]: WorkObject(**work) async for work in reference_works_cursor
+            }
+
+            return reference_ids, reference_works
+
+        per_page: int = 200  # OpenAlex supports 1-200 per page
         limit = min(limit, 10000)  # Ensure limit is under 10,000 (OpenAlex API limit)
 
         url = f"https://api.openalex.org/works?filter=cited_by:{self.entity_id}"
@@ -177,6 +253,9 @@ class Work:
         total_references = None
         page: int = 1
         max_pages: int = 1
+
+        reference_ids = []
+        reference_works = {}
 
         while len(references) < limit:
             try:
@@ -190,6 +269,16 @@ class Work:
                 break
             references.extend(new_references)
 
+            for reference in new_references:
+                try:
+                    reference_id = reference.get("id")
+                    if reference_id:
+                        reference_ids.append(reference_id)
+                        reference_works[reference_id] = WorkObject(**reference)
+                    # TODO: handle references without IDs (shouldn't happen)
+                except ValidationError:
+                    pass
+
             if total_references is None:
                 total_references = data["meta"]["count"]
                 max_pages = (total_references + len(new_references) - 1) // len(
@@ -201,10 +290,19 @@ class Work:
                 break
             page += 1
 
-        works = []
-        for work in references:
-            try:
-                works.append(WorkObject(**work))
-            except ValidationError:
-                pass
-        return works
+        # Save the Reference IDs to MongoDB
+        await self.mongo_collection_references.update_one(
+            filter={"id": self.idx},
+            update={"$set": {"references": reference_ids}},
+            upsert=True,
+        )
+
+        # Save the Reference Works to MongoDB
+        for reference_work in reference_works.values():
+            await self.mongo_collection_works.update_one(
+                filter={"id": str(reference_work.id)},
+                update={"$set": reference_work.model_dump(mode="json")},
+                upsert=True,
+            )
+
+        return reference_ids, reference_works
