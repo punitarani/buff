@@ -1,9 +1,9 @@
 """buff/openalex/models.py"""
 
 from datetime import date, datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, HttpUrl, StringConstraints
+from pydantic import BaseModel, HttpUrl, StringConstraints, field_validator
 
 # fmt: off
 WorkID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/W\d{4,10}$')]
@@ -23,6 +23,9 @@ OALocationVersion = Annotated[str, StringConstraints(pattern=r'^(publishedVersio
 DOI = Annotated[str, StringConstraints(pattern=r'https:\/\/doi\.org\/10\.\d{4,9}\/[\S]+$')]
 PMID = Annotated[str, StringConstraints(pattern=r'^https://pubmed\.ncbi\.nlm\.nih\.gov/\d+$')]
 PMCID = Annotated[str, StringConstraints(pattern=r'^https://www\.ncbi\.nlm\.nih(\.[\S]*)?/pmc/articles/(PMC)?\d+$')]
+
+WwwUrl = Annotated[str, StringConstraints(pattern=r"^(https?:\/\/)?www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-zA-Z]{2,6}\b([-a-zA-Z0-9()@:%_\+~#=]*\/?)*(\?[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]*)?(#[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]*)?$")]
+WebUrl = Union[HttpUrl, WwwUrl]
 # fmt: on
 
 
@@ -103,9 +106,9 @@ class OALocation(BaseModel):
     """Open Access location of a paper"""
 
     is_oa: Optional[bool] = None
-    landing_page_url: Optional[HttpUrl] = None
-    pdf_url: Optional[HttpUrl] = None
-    source: Optional[dict[str, bool | str | list[str] | HttpUrl | None]] = None
+    landing_page_url: Optional[WebUrl] = None
+    pdf_url: Optional[WebUrl] = None
+    source: Optional[dict[str, bool | str | list[str] | None]] = None
     license: Optional[str] = None
     version: Optional[OALocationVersion] = None
 
