@@ -33,41 +33,45 @@ async def build_network_around_work(
     queue = asyncio.Queue()
     await queue.put((entity_id, 0))
 
-    # Initialize tqdm progress bar
-    pbar = tqdm(total=1, desc="Processing network", dynamic_ncols=True)
+    total_items_processed = 0
+    max_items = 1  # Initial assumption, will increase as we add more items to the queue
 
-    while not queue.empty():
-        current_work, current_depth = await queue.get()
-        pbar.update(1)  # Update progress bar
+    with tqdm(total=max_items, desc="Processing", dynamic_ncols=True) as pbar:
+        while not queue.empty():
+            current_work, current_depth = await queue.get()
 
-        if current_depth > depth:
-            continue
+            if current_depth > depth:
+                continue
 
-        async with semaphore:
-            citations_task = asyncio.create_task(Work(current_work).citations(limit=limit))
-            references_task = asyncio.create_task(Work(current_work).references(limit=limit))
-            citations_result, references_result = await asyncio.gather(
-                citations_task, references_task
-            )
+            async with semaphore:
+                citations_task = asyncio.create_task(Work(current_work).citations(limit=limit))
+                references_task = asyncio.create_task(Work(current_work).references(limit=limit))
+                citations_result, references_result = await asyncio.gather(
+                    citations_task, references_task
+                )
 
-        citations_ids, _ = citations_result
-        references_ids, _ = references_result
+            citations_ids, _ = citations_result
+            references_ids, _ = references_result
 
-        for citation_id in citations_ids[:limit]:
-            nodes.add(citation_id)
-            edges.add((current_work, citation_id))
-            if current_depth + 1 <= depth:
-                await queue.put((parse_id_from_url(citation_id), current_depth + 1))
-                pbar.total += 1
+            # Update max_items and progress bar after obtaining the ids
+            max_items += len(citations_ids[:limit]) + len(references_ids[:limit])
+            pbar.total = max_items
+            pbar.set_description(f"Depth: {current_depth} | Processed: {total_items_processed}/{max_items}")
+            pbar.update(1)
 
-        for reference_id in references_ids[:limit]:
-            nodes.add(reference_id)
-            edges.add((reference_id, current_work))
-            if current_depth + 1 <= depth:
-                await queue.put((parse_id_from_url(reference_id), current_depth + 1))
-                pbar.total += 1
+            for citation_id in citations_ids[:limit]:
+                nodes.add(citation_id)
+                edges.add((current_work, citation_id))
+                if current_depth + 1 <= depth:
+                    await queue.put((parse_id_from_url(citation_id), current_depth + 1))
 
-    pbar.close()
+            for reference_id in references_ids[:limit]:
+                nodes.add(reference_id)
+                edges.add((reference_id, current_work))
+                if current_depth + 1 <= depth:
+                    await queue.put((parse_id_from_url(reference_id), current_depth + 1))
+
+            total_items_processed += 1
 
     return nodes, edges
 
