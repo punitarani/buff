@@ -9,18 +9,17 @@ from buff.openalex.utils import parse_id_from_url
 
 
 async def build_network_around_work(
-    entity_id: str, depth: int = 3, limit: int = 100, max_concurrent_requests: int = 10
+    entity_id: str, depth: int = 3, limit: int = 100, batch_size: int = 10
 ) -> tuple[set, set]:
     """
-    Build a network around a given work,
-    including both citations and references,
-    using batching and controlled concurrency.
+    Build a network around a given work, including both citations and references,
+    using batching and controlled concurrency with a specified batch size.
 
     Args:
         entity_id (str): The ID of the entity for which to build the network.
         depth (int): Maximum depth for fetching citations and references.
         limit (int): Maximum number of citations/references to fetch per work.
-        max_concurrent_requests (int): Maximum number of concurrent requests.
+        batch_size (int): Number of pairs of citations and references to process concurrently.
 
     Returns:
         tuple[set, set]: A tuple where the first element is a set of nodes (works),
@@ -28,7 +27,6 @@ async def build_network_around_work(
     """
     nodes = set()
     edges = set()
-    semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     queue = asyncio.Queue()
     await queue.put((entity_id, 0))
@@ -38,51 +36,80 @@ async def build_network_around_work(
 
     with tqdm(total=max_items, desc="Processing", dynamic_ncols=True) as pbar:
         while not queue.empty():
-            current_work, current_depth = await queue.get()
-
-            if current_depth > depth:
-                continue
-
-            async with semaphore:
-                citations_task = asyncio.create_task(
-                    Work(current_work).citations(limit=limit)
-                )
-                references_task = asyncio.create_task(
-                    Work(current_work).references(limit=limit)
-                )
-                citations_result, references_result = await asyncio.gather(
-                    citations_task, references_task
-                )
-
-            citations_ids, _ = citations_result
-            references_ids, _ = references_result
-
-            # Update max_items and progress bar after obtaining the ids
-            if current_depth < depth:
-                max_items += len(citations_ids[:limit]) + len(references_ids[:limit])
-                pbar.total = max_items
-            pbar.set_description(
-                f"Depth: {current_depth} | Processed: {total_items_processed}/{max_items}"
-            )
-            pbar.update(1)
-
-            for citation_id in citations_ids[:limit]:
-                nodes.add(citation_id)
-                edges.add((current_work, citation_id))
+            batch_tasks = []
+            for _ in range(batch_size):
+                if queue.empty():
+                    break
+                current_work, current_depth = await queue.get()
                 if current_depth <= depth:
-                    await queue.put((parse_id_from_url(citation_id), current_depth + 1))
-
-            for reference_id in references_ids[:limit]:
-                nodes.add(reference_id)
-                edges.add((reference_id, current_work))
-                if current_depth <= depth:
-                    await queue.put(
-                        (parse_id_from_url(reference_id), current_depth + 1)
+                    batch_tasks.append(
+                        asyncio.create_task(
+                            get_citations_and_references(
+                                current_work, current_depth, limit
+                            )
+                        )
                     )
 
-            total_items_processed += 1
+            results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+
+            for result in results:
+                if isinstance(result, Exception):
+                    continue  # Skipping any tasks that resulted in an exception
+
+                current_work, current_depth, citations_ids, references_ids = result
+
+                # Update max_items and progress bar after obtaining the ids
+                if current_depth < depth:
+                    max_items += len(citations_ids[:limit]) + len(
+                        references_ids[:limit]
+                    )
+                    pbar.total = max_items
+                pbar.set_description(
+                    f"Depth: {current_depth} | Processed: {total_items_processed}/{max_items}"
+                )
+                pbar.update(1)
+
+                # Process citations and references
+                for citation_id in citations_ids[:limit]:
+                    nodes.add(citation_id)
+                    edges.add((current_work, citation_id))
+                    if current_depth < depth:
+                        await queue.put(
+                            (parse_id_from_url(citation_id), current_depth + 1)
+                        )
+
+                for reference_id in references_ids[:limit]:
+                    nodes.add(reference_id)
+                    edges.add((reference_id, current_work))
+                    if current_depth < depth:
+                        await queue.put(
+                            (parse_id_from_url(reference_id), current_depth + 1)
+                        )
+
+                total_items_processed += 1
 
     return nodes, edges
+
+
+async def get_citations_and_references(work_id, depth, limit) -> tuple:
+    """
+    Fetch citations and references for a given work.
+    """
+    try:
+        citations_task = asyncio.create_task(Work(work_id).citations(limit=limit))
+        references_task = asyncio.create_task(Work(work_id).references(limit=limit))
+        citations_result, references_result = await asyncio.gather(
+            citations_task, references_task
+        )
+
+        citations_ids, _ = citations_result
+        references_ids, _ = references_result
+
+        return work_id, depth, citations_ids, references_ids
+
+    except Exception as e:
+        print(f"Error fetching data for work {work_id}: {e}")
+        return work_id, depth, [], []
 
 
 async def get_citations_recursively(
