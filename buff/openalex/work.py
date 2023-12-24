@@ -15,7 +15,7 @@ from tenacity import (
 from buff.store.mongo import mongo_client
 from config import EMAIL
 
-from .errors import OpenAlexError
+from .errors import InvalidEntityID, OpenAlexError
 from .models import WorkObject
 from .utils import parse_id_from_url
 
@@ -51,9 +51,9 @@ class Work:
 
         # Ensure the Entity ID is valid
         if not entity_id.startswith("W"):
-            raise OpenAlexError(f"Invalid Entity ID: {entity_id}")
-        self.entity_id: str = entity_id
+            raise InvalidEntityID(entity_id=entity_id)
 
+        self.entity_id: str = entity_id
         self.idx: str = f"{self.BASE_URL}{self.entity_id}"
 
         self._data: WorkObject | None = None
