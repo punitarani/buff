@@ -69,9 +69,9 @@ class Work:
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=(
-                retry_if_exception_type(JSONDecodeError)
-                | retry_if_exception_type(httpx.ConnectTimeout)
-                | retry_if_exception_type(OpenAlexError)
+            retry_if_exception_type(JSONDecodeError)
+            | retry_if_exception_type(httpx.ConnectTimeout)
+            | retry_if_exception_type(OpenAlexError)
         ),
     )
     async def __GET(self, url: str) -> dict:
@@ -122,7 +122,7 @@ class Work:
         return self._data
 
     async def citations(
-            self, limit: int = 1000, save_all: bool = False
+        self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the citations of the work from the OpenAlex API.
@@ -150,9 +150,23 @@ class Work:
                 {"id": {"$in": citation_ids}}
             )
 
+            # Convert cursor to list
+            citation_works_list = await citation_works_cursor.to_list(length=None)
+
+            # Sort the list of works by 'cited_by_count' in descending order
+            sorted_works = sorted(
+                citation_works_list, key=lambda x: x["cited_by_count"], reverse=True
+            )
+
+            # Extract the sorted IDs
+            sorted_ids = [work["id"] for work in sorted_works]
+
+            # Limit the number of IDs
+            citation_ids = sorted_ids[:limit]
+
             # TODO: what happens if the cursor is missing some works?
             citation_works = {
-                work["id"]: WorkObject(**work) async for work in citation_works_cursor
+                work["id"]: WorkObject(**work) for work in sorted_works[:limit]
             }
 
             return citation_ids, citation_works
@@ -234,7 +248,7 @@ class Work:
             return citation_ids[:limit], return_citations
 
     async def references(
-            self, limit: int = 1000, save_all: bool = False
+        self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the references of the work from the OpenAlex API.
@@ -254,17 +268,33 @@ class Work:
         db_references = await self.mongo_collection_references.find_one(
             {"id": self.idx}
         )
+
         if db_references:
-            reference_ids = db_references["references"][:limit]
+            # Get the reference IDs from MongoDB
+            reference_ids = db_references["references"]
 
             # Fetch all reference works in a single query
             reference_works_cursor = self.mongo_collection_works.find(
                 {"id": {"$in": reference_ids}}
             )
 
+            # Convert cursor to list
+            reference_works_list = await reference_works_cursor.to_list(length=None)
+
+            # Sort the list of works by 'cited_by_count' in descending order
+            sorted_works = sorted(
+                reference_works_list, key=lambda x: x["cited_by_count"], reverse=True
+            )
+
+            # Extract the sorted IDs
+            sorted_ids = [work["id"] for work in sorted_works]
+
+            # Limit the number of IDs
+            reference_ids = sorted_ids[:limit]
+
             # TODO: what happens if the cursor is missing some works?
             reference_works = {
-                work["id"]: WorkObject(**work) async for work in reference_works_cursor
+                work["id"]: WorkObject(**work) for work in sorted_works[:limit]
             }
 
             return reference_ids, reference_works
