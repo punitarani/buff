@@ -3,6 +3,7 @@
 from dotenv import load_dotenv
 
 from config import PROJECT_PATH
+
 from .secrets import Secrets
 
 # Load .env
