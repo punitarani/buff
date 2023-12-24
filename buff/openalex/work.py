@@ -17,6 +17,7 @@ from config import EMAIL
 
 from .errors import OpenAlexError
 from .models import WorkObject
+from .utils import parse_id_from_url
 
 limiter = AsyncLimiter(max_rate=10, time_period=1)
 
@@ -43,6 +44,10 @@ class Work:
         Args:
             entity_id (str): Entity ID of the work
         """
+
+        # Parse the Entity ID from the URL if necessary
+        if entity_id.startswith("https://openalex.org/"):
+            entity_id = parse_id_from_url(entity_id)
 
         # Ensure the Entity ID is valid
         if not entity_id.startswith("W"):
