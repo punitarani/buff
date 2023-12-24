@@ -12,7 +12,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from config import EMAIL, mongo_client
+from buff.store.mongo import mongo_client
+from config import EMAIL
 
 from .errors import OpenAlexError
 from .models import WorkObject
@@ -63,9 +64,9 @@ class Work:
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=(
-            retry_if_exception_type(JSONDecodeError)
-            | retry_if_exception_type(httpx.ConnectTimeout)
-            | retry_if_exception_type(OpenAlexError)
+                retry_if_exception_type(JSONDecodeError)
+                | retry_if_exception_type(httpx.ConnectTimeout)
+                | retry_if_exception_type(OpenAlexError)
         ),
     )
     async def __GET(self, url: str) -> dict:
@@ -116,7 +117,7 @@ class Work:
         return self._data
 
     async def citations(
-        self, limit: int = 1000, save_all: bool = False
+            self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the citations of the work from the OpenAlex API.
@@ -228,7 +229,7 @@ class Work:
             return citation_ids[:limit], return_citations
 
     async def references(
-        self, limit: int = 1000, save_all: bool = False
+            self, limit: int = 1000, save_all: bool = False
     ) -> tuple[list[str], dict[str, WorkObject]]:
         """
         Get the references of the work from the OpenAlex API.
