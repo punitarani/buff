@@ -10,16 +10,22 @@ readme = "README.md"
 python = "^3.11 <3.12"
 aiocache = {extras = ["redis"], version = "^0.12.2"}
 aiolimiter = "^1.1.0"
+chromadb = "^0.4.21"
 httpx = "^0.25.1"
+langchain = "^0.0.352"
 motor = "^3.3.1"
+networkx = "^3.2.1"
+notebook = "^7.0.6"
+openai = "^1.6.1"
 pydantic = "^2.4.2"
+pymupdf = "^1.23.8"
 python-dotenv = "^1.0.0"
 streamlit = "^1.28.1"
 tenacity = "^8.2.3"
 tqdm = "^4.66.1"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.9.1"
+black = {extras = ["jupyter"], version = "^23.12.1"}
 isort = "^5.12.0"
 pre-commit = "^3.4.0"
 pytest = "^7.4.2"

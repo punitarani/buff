@@ -9,7 +9,7 @@ endif
 
 
 # List of directories and files to format and lint
-TARGETS = buff/ tests/
+TARGETS = buff/ notebooks/ tests/
 
 # Format code using isort and black
 format:

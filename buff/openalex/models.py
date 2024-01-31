@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import Annotated, Optional, Union
 
-from pydantic import BaseModel, HttpUrl, StringConstraints, field_validator
+from pydantic import BaseModel, HttpUrl, StringConstraints
 
 # fmt: off
 WorkID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/W\d{4,10}$')]
