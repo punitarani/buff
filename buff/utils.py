@@ -1,6 +1,7 @@
 """buff/utils.py"""
 
 import logging
+
 import pandas as pd
 
 from config import DATA_DIR, LOGS_DIR
