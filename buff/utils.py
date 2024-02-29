@@ -1,15 +1,15 @@
 """buff/utils.py"""
 
 
-def safe_filename(doi: str) -> str:
+def sanitize_name(text: str) -> str:
     """
-    Creates a safe filename from the DOI.
-    Replace characters that are not allowed in filenames.
+    Sanitizes a string for use as a filename.
+    Replace any non-alphanumeric characters with underscores.
 
     Args:
-        doi (str): DOI of the paper
+        text (str): The input string to sanitize.
 
     Returns:
-        str: Safe filename of the paper
+        str: A sanitized, file-safe name.
     """
-    return "".join(c if c.isalnum() else "_" for c in doi)
+    return "".join(c if c.isalnum() else "_" for c in text)

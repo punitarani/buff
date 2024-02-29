@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 
-from buff.utils import safe_filename
+from buff.utils import sanitize_name
 from config import DATA_DIR, EMAIL
 
 
@@ -71,7 +71,7 @@ async def download_paper(doi: str) -> Path | None:
     Returns:
         Path | None: Path to the downloaded paper or None if not found
     """
-    filename = safe_filename(doi) + ".pdf"
+    filename = sanitize_name(doi) + ".pdf"
     filepath = DATA_DIR.joinpath(filename)
 
     # If the file already exists, return it
