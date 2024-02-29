@@ -14,7 +14,6 @@ from tenacity import (
 
 from buff.store.mongo import mongo_client
 from config import EMAIL
-
 from .errors import InvalidEntityID, OpenAlexError
 from .models import WorkObject
 from .utils import parse_id_from_url
@@ -114,9 +113,11 @@ class Work:
         data = await self.__GET(url)
         self._data = WorkObject(**data)
 
-        # Serialize WorkObject data into a dict and save to MongoDB
+        # Serialize WorkObject data into a dict and save it to MongoDB
         await self.mongo_collection_works.update_one(
-            update=self._data.model_dump(mode="json"), upsert=True
+            filter={"id": self.idx},
+            update={"$set": self._data.model_dump(mode="json")},
+            upsert=True,
         )
 
         return self._data
@@ -366,11 +367,14 @@ class Work:
             return_references = {}
             # Save only the Works within the limit to MongoDB
             for ref_id in reference_ids[:limit]:
-                reference_work = reference_works[ref_id]
-                return_references[ref_id] = reference_work
-                await self.mongo_collection_works.update_one(
-                    filter={"id": str(reference_work.id)},
-                    update={"$set": reference_work.model_dump(mode="json")},
-                    upsert=True,
-                )
+                try:
+                    reference_work = reference_works[ref_id]
+                    return_references[ref_id] = reference_work
+                    await self.mongo_collection_works.update_one(
+                        filter={"id": str(reference_work.id)},
+                        update={"$set": reference_work.model_dump(mode="json")},
+                        upsert=True,
+                    )
+                except KeyError:
+                    pass
             return reference_ids[:limit], return_references
