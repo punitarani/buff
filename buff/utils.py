@@ -1,11 +1,56 @@
 """buff/utils.py"""
 
+import logging
 import pandas as pd
 
-from config import DATA_DIR
+from config import DATA_DIR, LOGS_DIR
 
 SANITIZED_NAMES_FP = DATA_DIR.joinpath("sanitized_names.csv")
 SANITIZED_NAMES_FP.touch(exist_ok=True)
+
+
+LOGGERS = {}  # Logger cache
+
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get a logger with the specified name.
+
+    Args:
+        name (str): The name of the logger.
+
+    Returns:
+        logging.Logger: The logger.
+    """
+    if name in LOGGERS:
+        return LOGGERS[name]
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # Create file handler
+    fh = logging.FileHandler(LOGS_DIR.joinpath(f"{name}.log"))
+    fh.setLevel(logging.DEBUG)
+
+    # Create console handler
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # Create formatter and add it to the handlers
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+
+    # Add the handlers to the logger
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+
+    # Cache the logger
+    LOGGERS[name] = logger
+
+    return logger
 
 
 def sanitize_name(text: str) -> str:
