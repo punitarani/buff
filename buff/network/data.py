@@ -10,7 +10,10 @@ from buff.openalex.utils import parse_id_from_url
 
 
 async def build_network_around_work(
-    entity_id: str, depth: int = 3, limit: int = 100
+    entity_id: str,
+    depth: int = 3,
+    citations_limit: int = 10,
+    references_limit: int = 100,
 ) -> tuple[set, set]:
     """
     Build a network around a given work, including both citations and references,
@@ -19,7 +22,8 @@ async def build_network_around_work(
     Args:
         entity_id (str): The ID of the entity for which to build the network.
         depth (int): Maximum depth for fetching citations and references.
-        limit (int): Maximum number of citations/references to fetch per work.
+        citations_limit (int): Maximum number of citations to fetch per work.
+        references_limit (int): Maximum number of references to fetch per work.
 
     Returns:
         tuple[set, set]: A tuple where the first element is a set of nodes (works),
@@ -35,7 +39,10 @@ async def build_network_around_work(
         while not queue.empty():
             current_work, current_depth = await queue.get()
             citations, references = await get_citations_and_references(
-                current_work, depth - current_depth, limit
+                current_work,
+                depth - current_depth,
+                citations_limit=citations_limit,
+                references_limit=references_limit,
             )
 
             for citation in citations:
@@ -57,7 +64,9 @@ async def build_network_around_work(
     return nodes, edges
 
 
-async def get_citations_and_references(work_id: str, depth: int, limit: int) -> tuple:
+async def get_citations_and_references(
+    work_id: str, depth: int, citations_limit: int, references_limit: int
+) -> tuple:
     """
     Fetch citations and references for a given work.
     This function is now a wrapper around the recursive fetching functions.
@@ -65,10 +74,11 @@ async def get_citations_and_references(work_id: str, depth: int, limit: int) -> 
     Args:
         work_id (str): The ID of the work for which to fetch citations and references.
         depth (int): Maximum depth for fetching citations and references.
-        limit (int): Maximum number of citations/references to fetch per work.
+        citations_limit (int): Maximum number of citations to fetch per work.
+        references_limit (int): Maximum number of references to fetch per work.
     """
-    citations = await get_citations_recursively(work_id, depth, limit)
-    references = await get_references_recursively(work_id, depth, limit)
+    citations = await get_citations_recursively(work_id, depth, citations_limit)
+    references = await get_references_recursively(work_id, depth, references_limit)
     return citations, references
 
 
