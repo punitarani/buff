@@ -8,7 +8,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11 <3.12"
-aiocache = {extras = ["redis"], version = "^0.12.2"}
 aiolimiter = "^1.1.0"
 chromadb = "^0.4.21"
 httpx = "^0.25.1"
