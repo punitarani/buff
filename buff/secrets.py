@@ -16,11 +16,6 @@ class Secrets(BaseModel):
     MONGO_USERNAME: str
     MONGO_PASSWORD: str
 
-    # Redis
-    REDIS_HOST: str
-    REDIS_PORT: str
-    REDIS_PASSWORD: str
-
     @classmethod
     def load(cls) -> "Secrets":
         """Load secrets from environment variables"""
@@ -37,21 +32,10 @@ class Secrets(BaseModel):
         assert MONGO_USERNAME, "MONGO_USERNAME environment variable not set"
         assert MONGO_PASSWORD, "MONGO_PASSWORD environment variable not set"
 
-        # Redis
-        REDIS_HOST = os.getenv("REDISHOST")
-        REDIS_PORT = os.getenv("REDISPORT")
-        REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-        assert REDIS_HOST, "REDIS_HOST environment variable not set"
-        assert REDIS_PORT, "REDIS_PORT environment variable not set"
-        assert REDIS_PASSWORD, "REDIS_PASSWORD environment variable not set"
-
         return cls(
             OPENAI_API_KEY=OPENAI_API_KEY,
             MONGO_HOST=MONGO_HOST,
             MONGO_DB=MONGO_DB,
             MONGO_USERNAME=MONGO_USERNAME,
             MONGO_PASSWORD=MONGO_PASSWORD,
-            REDIS_HOST=REDIS_HOST,
-            REDIS_PORT=REDIS_PORT,
-            REDIS_PASSWORD=REDIS_PASSWORD,
         )
