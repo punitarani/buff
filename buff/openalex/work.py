@@ -14,6 +14,7 @@ from tenacity import (
 
 from buff.store.mongo import mongo_client
 from config import EMAIL
+
 from .errors import InvalidEntityID, OpenAlexError
 from .models import WorkObject
 from .utils import parse_id_from_url
