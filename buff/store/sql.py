@@ -25,13 +25,13 @@ assert PGPASSWORD is not None, "Env var PGPASSWORD is not set."
 
 # pylint: disable=too-many-arguments
 def database_url(
-        driver: str = "postgresql",
-        host: str = PGHOST,
-        port: str = PGPORT,
-        username: str = PGDATABASE,
-        password: str = PGUSER,
-        database: str = PGPASSWORD,
-        params: dict = None,
+    driver: str = "postgresql",
+    host: str = PGHOST,
+    port: str = PGPORT,
+    username: str = PGDATABASE,
+    password: str = PGUSER,
+    database: str = PGPASSWORD,
+    params: dict = None,
 ) -> str:
     """Construct a database URL"""
     url = f"{driver}://{username}:{password}@{host}:{port}/{database}"
@@ -44,7 +44,7 @@ def database_url(
 
 
 def get_engine(
-        url: str = database_url(), echo: bool = False, args: dict = None
+    url: str = database_url(), echo: bool = False, args: dict = None
 ) -> Engine:
     """
     Get the SQLAlchemy engine.
