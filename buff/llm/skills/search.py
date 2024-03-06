@@ -1,4 +1,4 @@
-"""buff/llm/agents/search.py"""
+"""buff/llm/skills/search.py"""
 
 from buff.llm.client import cohere
 

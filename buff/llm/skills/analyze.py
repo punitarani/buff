@@ -1,4 +1,4 @@
-"""buff/llm/agents/analyze.py"""
+"""buff/llm/skills/analyze.py"""
 
 from buff.llm.client import openai
 
