@@ -15,6 +15,10 @@ from config import DATA_DIR, EMAIL
 
 PAPERS_DIR = DATA_DIR.joinpath("papers")
 
+# Ensure the directories exist
+PAPERS_PDF_DIR = PAPERS_DIR.joinpath("pdf")
+PAPERS_PDF_DIR.mkdir(parents=True, exist_ok=True)
+
 logger = get_logger(__name__)
 
 
@@ -92,7 +96,7 @@ async def download_paper(doi: str) -> Path | None:
         doi = doi[8:]
 
     filename = sanitize_name(doi)
-    filepath = PAPERS_DIR.joinpath("pdf", filename + ".pdf")
+    filepath = PAPERS_PDF_DIR.joinpath(filename + ".pdf")
 
     # If the file already exists, return it
     if filepath.exists():
