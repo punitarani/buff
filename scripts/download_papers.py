@@ -1,6 +1,5 @@
 """scripts/download_papers.py"""
 
-import asyncio
 import json
 
 from tqdm import tqdm
@@ -8,8 +7,9 @@ from tqdm import tqdm
 from buff.network.download import download_papers
 from buff.openalex import Work
 from buff.utils import sanitize_name
-from config import DATA_DIR
+from config import DATA_DIR, PAPERS_DIR
 
+PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
 NETWORK_FP = DATA_DIR.joinpath("network_2.json")
 
 with open(NETWORK_FP, "r", encoding="utf-8") as f:
@@ -42,7 +42,7 @@ async def map_work_id_to_doi(works: list[str]) -> dict[str, str]:
                 doi = doi[8:]
 
             filename = sanitize_name(doi) + ".txt"
-            filepath = DATA_DIR.joinpath("txt", filename)
+            filepath = PAPERS_DIR.joinpath("txt", filename)
             if filepath.exists():
                 work_doi[work_id] = doi
 
