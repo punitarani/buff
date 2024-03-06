@@ -28,9 +28,9 @@ def database_url(
     driver: str = "postgresql",
     host: str = PGHOST,
     port: str = PGPORT,
-    username: str = PGDATABASE,
-    password: str = PGUSER,
-    database: str = PGPASSWORD,
+    username: str = PGUSER,
+    password: str = PGPASSWORD,
+    database: str = PGDATABASE,
     params: dict = None,
 ) -> str:
     """Construct a database URL"""
@@ -44,7 +44,7 @@ def database_url(
 
 
 def get_engine(
-    url: str = database_url(), echo: bool = False, args: dict = None
+        url: str = database_url(), echo: bool = False, args: dict = None
 ) -> Engine:
     """
     Get the SQLAlchemy engine.
