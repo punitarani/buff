@@ -7,6 +7,7 @@ from buff.openalex import Work
 from buff.unpaywall import download_paper, extract_text, PAPERS_DIR
 from config import DATA_DIR
 
+OA_FP = DATA_DIR.joinpath("oa.txt")
 NO_OA_FP = DATA_DIR.joinpath("no_oa.txt")
 PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
 
@@ -92,8 +93,8 @@ async def download_papers(works: list[str], max_concurrent_downloads: int = 10) 
             print(f"Paper not found for work: {work_id}")
 
             # Add the work to the list of works that are not open access
-            with open(NO_OA_FP, "a", encoding="utf-8") as no_oa_file:
-                no_oa_file.write(f"{work_id}\n")
+            with open(NO_OA_FP, "a", encoding="utf-8") as no_oa_txt:
+                no_oa_txt.write(f"{work_id}\n")
 
             return None
 
@@ -106,6 +107,11 @@ async def download_papers(works: list[str], max_concurrent_downloads: int = 10) 
             txt_file.write(text)
 
         print(f"Downloaded paper for work: {work_id}")
+
+        # Add the work to the list of works that are open access
+        with open(OA_FP, "a", encoding="utf-8") as oa_file:
+            oa_file.write(f"{work_id}\n")
+
         return work_id
 
     # Use asyncio.gather to run the downloads concurrently
