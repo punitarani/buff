@@ -30,7 +30,7 @@ async def map_work_id_to_doi(works: list[str]) -> dict[str, str]:
     work_doi = {}
     for work_id in tqdm(works, desc="Mapping"):
         work = await Work(work_id).data
-        doi = work.doi
+        doi = str(work.doi)
 
         # Check if the txt file exists
         if doi:
