@@ -7,6 +7,7 @@ SQL database connection and engine.
 import os
 
 from sqlalchemy import Engine, create_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 # Get Env vars
 PGHOST = os.getenv("PGHOST")
@@ -63,5 +64,29 @@ def get_engine(
 
     engine = create_engine(
         url, echo=echo, connect_args=args, pool_size=10, max_overflow=10
+    )
+    return engine
+
+
+def get_async_engine(
+        url: str = database_url(driver="postgresql+asyncpg"), echo: bool = False, args: dict = None
+) -> AsyncEngine:
+    """
+    Get the SQLAlchemy async engine.
+
+    Args:
+        url: The database URL.
+        echo: Flag to enable SQL logging.
+        args: The SQLAlchemy engine connect_args.
+
+    Returns:
+        The SQLAlchemy engine.
+    """
+
+    if args is None:
+        args = {}
+
+    engine = create_async_engine(
+        url, echo=echo, connect_args=args, pool_size=10, max_overflow=10, future=True
     )
     return engine
