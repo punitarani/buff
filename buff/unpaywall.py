@@ -11,9 +11,7 @@ import fitz
 import httpx
 
 from buff.utils import get_logger, sanitize_name, save_sanitized_name
-from config import DATA_DIR, EMAIL
-
-PAPERS_DIR = DATA_DIR.joinpath("papers")
+from config import EMAIL, PAPERS_DIR
 
 # Ensure the directories exist
 PAPERS_PDF_DIR = PAPERS_DIR.joinpath("pdf")
