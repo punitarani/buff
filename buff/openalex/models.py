@@ -21,7 +21,7 @@ ApcProvenance = Annotated[str, StringConstraints(pattern=r'^(openapc|doaj)$')]
 OALocationVersion = Annotated[str, StringConstraints(pattern=r'^(publishedVersion|acceptedVersion|submittedVersion)$')]
 
 DOI = Annotated[str, StringConstraints(pattern=r'https:\/\/doi\.org\/10\.\d{4,9}\/[\S]+$')]
-PMID = Annotated[str, StringConstraints(pattern=r'^https://pubmed\.ncbi\.nlm\.nih\.gov/\d+$')]
+PMID = Annotated[str, StringConstraints(pattern=r'^https://pubmed\.ncbi\.nlm\.nih\.gov/(?:\d+|PMC\d+)/?$')]
 PMCID = Annotated[str, StringConstraints(pattern=r'^https://www\.ncbi\.nlm\.nih(\.[\S]*)?/pmc/articles/(PMC)?\d+$')]
 
 WwwUrl = Annotated[str, StringConstraints(pattern=r"^(https?:\/\/)?www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-zA-Z]{2,6}\b([-a-zA-Z0-9()@:%_\+~#=]*\/?)*(\?[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]*)?(#[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]*)?$")]
