@@ -61,7 +61,7 @@ class Work:
         self._data: WorkObject | None = None
 
         self.sql_engine: Engine = get_engine()
-        self.sql_session: sessionmaker[Session] = sessionmaker(engine=self.sql_engine)
+        self.sql_session: sessionmaker[Session] = sessionmaker(bind=self.sql_engine)
 
     @property
     async def data(self) -> WorkObject:
