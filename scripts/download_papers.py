@@ -10,7 +10,8 @@ from buff.utils import sanitize_name
 from config import DATA_DIR, PAPERS_DIR
 
 PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
-NETWORK_FP = DATA_DIR.joinpath("network_2.json")
+NETWORK_FP = DATA_DIR.joinpath("network.json")
+WORKS_FP = DATA_DIR.joinpath("works.json")
 
 with open(NETWORK_FP, "r", encoding="utf-8") as f:
     WORKS = json.load(f).get("nodes", [])
@@ -59,5 +60,5 @@ if __name__ == "__main__":
     work_dois = asyncio.run(map_work_id_to_doi(WORKS))
 
     print("Saving to file works.json")
-    with open(f"{DATA_DIR}/works.json", "w") as f:
-        json.dump(work_dois, f, indent=2)
+    with open(WORKS_FP, "w", encoding="utf-8") as work_file:
+        json.dump(work_dois, work_file, indent=2)
