@@ -10,7 +10,7 @@ from pathlib import Path
 import fitz
 import httpx
 
-from buff.utils import get_logger, sanitize_name
+from buff.utils import get_logger, sanitize_name, save_sanitized_name
 from config import DATA_DIR, EMAIL
 
 PAPERS_DIR = DATA_DIR.joinpath("papers")
@@ -89,13 +89,16 @@ async def download_paper(doi: str) -> Path | None:
     elif doi.startswith("doi.org/"):
         doi = doi[8:]
 
-    filename = sanitize_name(doi) + ".pdf"
-    filepath = PAPERS_DIR.joinpath("pdf", filename)
+    filename = sanitize_name(doi)
+    filepath = PAPERS_DIR.joinpath("pdf", filename + ".pdf")
 
     # If the file already exists, return it
     if filepath.exists():
         logger.info(f"Paper already downloaded: {doi}")
         return filepath
+
+    # Save the sanitized name
+    save_sanitized_name(text=doi, name=filename)
 
     url = await get_paper_url(doi)
     if url is None:
