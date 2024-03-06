@@ -79,11 +79,13 @@ def save_sanitized_name(text: str, name: str) -> None:
         name (str): The sanitized name.
     """
 
+    columns = ["text", "name"]
+
     # Read the existing data, or create a new DataFrame if the file is empty
     try:
-        df = pd.read_csv(SANITIZED_NAMES_FP, encoding="utf-8")
+        df = pd.read_csv(SANITIZED_NAMES_FP, encoding="utf-8", names=columns)
     except pd.errors.EmptyDataError:
-        df = pd.DataFrame(columns=["text", "name"])
+        df = pd.DataFrame(columns=columns)
 
     # Check for duplicates based on both `text` and `name`
     if not ((df["text"] == text) & (df["name"] == name)).any():
