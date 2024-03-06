@@ -159,6 +159,9 @@ class Work:
 
         TODO: add support for batched requests
         """
+        # Get the work information if it's not already fetched
+        await self.get()
+
         # Try to get the citations from the database
         with self.sql_session() as session:
             work_citations = (
@@ -322,6 +325,9 @@ class Work:
                 - List of IDs URLs of the references
                 - Dictionary of {id: WorkObject} of all the referenced works
         """
+        # Get the work information if it's not already fetched
+        await self.get()
+
         # Try to get the references from the database
         with self.sql_session() as session:
             work_references = (
