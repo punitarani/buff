@@ -128,10 +128,10 @@ class Work:
 
         # Save the WorkObject data to the SQL database
         work = schemas.Work(
-            id=self._data.id,
+            id=str(self._data.id),
             title=self._data.title,
-            doi=self._data.doi,
-            pdf_url=self._data.best_oa_location.pdf_url,
+            doi=str(self._data.doi),
+            pdf_url=str(self._data.best_oa_location.pdf_url) if self._data.best_oa_location else None,
             embed=False,
         )
         with self.sql_session() as session:
@@ -166,7 +166,7 @@ class Work:
         with self.sql_session() as session:
             work_citations = (
                 session.query(schemas.WorkCitations)
-                .filter(schemas.WorkCitations.work_id == self._data.id)
+                .filter(schemas.WorkCitations.work_id == str(self._data.id))
                 .first()
             )
             # TODO: check that the citations count match and/or are at limit
@@ -240,8 +240,8 @@ class Work:
                         citation_work_schema = schemas.Work(
                             id=citation_id,
                             title=citation_work.title,
-                            doi=citation_work.doi,
-                            pdf_url=citation_work.best_oa_location.pdf_url,
+                            doi=str(citation_work.doi),
+                            pdf_url=str(citation_work.best_oa_location.pdf_url) if citation_work.best_oa_location else None,
                             embed=False,
                         )
                         citation_works_schemas[citation_id] = citation_work_schema
@@ -260,17 +260,6 @@ class Work:
                 break
             page += 1
 
-        # Save the Citation IDs to the SQL database
-        work_citations = schemas.WorkCitations(
-            id=self.idx,
-            work_id=self._data.id,
-            citations=citation_ids,
-            count=citation_count,
-        )
-        with self.sql_session() as session:
-            session.add(work_citations)
-            session.commit()
-
         if save_all:
             # Save the Citation Works to MongoDB
             for citation_work in citation_works.values():
@@ -286,7 +275,9 @@ class Work:
                     session.merge(citation_work_schema)
                 session.commit()
 
-            return citation_ids, citation_works
+            return_citation_ids = citation_ids
+            return_citations = citation_works
+
         else:
             return_citations = {}
 
@@ -306,7 +297,33 @@ class Work:
                     session.merge(citation_work_schema)
                 session.commit()
 
-            return citation_ids[:limit], return_citations
+            return_citation_ids = citation_ids[:limit]
+
+        # Save the WorkObject data to the SQL database
+        work = schemas.Work(
+            id=str(self._data.id),
+            title=self._data.title,
+            doi=str(self._data.doi),
+            pdf_url=str(self._data.best_oa_location.pdf_url) if self._data.best_oa_location else None,
+            embed=False,
+        )
+        with self.sql_session() as session:
+            session.merge(work)
+            session.commit()
+
+        # Save the Citation IDs to the SQL database
+        # Note: save citations after work to prevent foreign key constraint violation
+        work_citations = schemas.WorkCitations(
+            id=self.idx,
+            work_id=str(self._data.id),
+            citations=citation_ids,
+            count=citation_count,
+        )
+        with self.sql_session() as session:
+            session.add(work_citations)
+            session.commit()
+
+        return return_citation_ids, return_citations
 
     async def references(
         self, limit: int = 1000, save_all: bool = False
@@ -332,7 +349,7 @@ class Work:
         with self.sql_session() as session:
             work_references = (
                 session.query(schemas.WorkReferences)
-                .filter(schemas.WorkReferences.work_id == self._data.id)
+                .filter(schemas.WorkReferences.work_id == str(self._data.id))
                 .first()
             )
             # TODO: check that the references count match and/or are at limit
@@ -408,8 +425,8 @@ class Work:
                         reference_work_schema = schemas.Work(
                             id=reference_id,
                             title=reference_work.title,
-                            doi=reference_work.doi,
-                            pdf_url=reference_work.best_oa_location.pdf_url,
+                            doi=str(reference_work.doi),
+                            pdf_url=str(reference_work.best_oa_location.pdf_url) if reference_work.best_oa_location else None,
                             embed=False,
                         )
                         reference_works_schemas[reference_id] = reference_work_schema
@@ -428,17 +445,6 @@ class Work:
                 break
             page += 1
 
-        # Save the Reference IDs to the SQL database
-        work_references = schemas.WorkReferences(
-            id=self.idx,
-            work_id=self._data.id,
-            references=reference_ids,
-            count=reference_count,
-        )
-        with self.sql_session() as session:
-            session.add(work_references)
-            session.commit()
-
         if save_all:
             # Save the Reference Works to MongoDB
             for reference_work in reference_works.values():
@@ -454,7 +460,8 @@ class Work:
                     session.merge(reference_work_schema)
                 session.commit()
 
-            return reference_ids, reference_works
+            return_reference_ids = reference_ids
+
         else:
             return_references = {}
 
@@ -474,4 +481,30 @@ class Work:
                     session.merge(reference_work_schema)
                 session.commit()
 
-            return reference_ids[:limit], return_references
+            return_reference_ids = reference_ids[:limit]
+
+        # Save the WorkObject data to the SQL database
+        work = schemas.Work(
+            id=str(self._data.id),
+            title=self._data.title,
+            doi=str(self._data.doi),
+            pdf_url=str(self._data.best_oa_location.pdf_url) if self._data.best_oa_location else None,
+            embed=False,
+        )
+        with self.sql_session() as session:
+            session.merge(work)
+            session.commit()
+
+        # Save the Reference IDs to the SQL database
+        # Note: save references after work to prevent foreign key constraint violation
+        work_references = schemas.WorkReferences(
+            id=self.idx,
+            work_id=self._data.id,
+            references=reference_ids,
+            count=reference_count,
+        )
+        with self.sql_session() as session:
+            session.add(work_references)
+            session.commit()
+
+        return return_reference_ids, reference_works
