@@ -30,7 +30,7 @@ async def get_paper_info(doi: str) -> dict:
     """
     request_url = f"https://api.unpaywall.org/v2/{doi}?email={EMAIL}"
     async with httpx.AsyncClient() as client:
-        response = await client.get(request_url)
+        response = await client.get(request_url, timeout=60.0)
         if response.status_code == 200:
             return response.json()
     return {}
@@ -49,7 +49,9 @@ async def get_paper_url(doi: str) -> str | None:
     data = await get_paper_info(doi)
 
     best_oa_location = data.get("best_oa_location", {})
-    return best_oa_location.get("url_for_pdf", None)
+    if best_oa_location:
+        return best_oa_location.get("url_for_pdf", None)
+    return None
 
 
 async def get_paper_authors(doi: str) -> list[set[str]]:
