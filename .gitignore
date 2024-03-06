@@ -1,4 +1,6 @@
 ### Project
+data/chroma/
+data/papers/
 .ruff_cache/
 
 
