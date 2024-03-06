@@ -12,7 +12,7 @@ AuthorID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/A\d
 AuthorPosition = Annotated[str, StringConstraints(pattern=r'^(first|middle|last)$')]
 
 InstitutionID = Annotated[str, StringConstraints(pattern=r'^https://openalex\.org/I\d{4,10}$')]
-OrcidID = Annotated[str, StringConstraints(pattern=r'^https://orcid\.org/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$')]
+OrcidID = Annotated[str, StringConstraints(pattern=r'^https://orcid\.org/\d{4}-\d{4}-\d{4}-\d{3}(\d|X)?$')]
 RorID = Annotated[str, StringConstraints(pattern=r'^https://ror\.org/\w{9}$')]
 RorType = Annotated[str, StringConstraints(pattern=r'^(education|healthcare|company|archive|nonprofit|government|facility|other)$')]
 
