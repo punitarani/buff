@@ -11,7 +11,7 @@ async def embed_text(text: str) -> list[float]:
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
     """Embed a list of texts using OpenAI's text-embedding model."""
-    response = await openai.Embedding.create(
+    response = await openai.embeddings.create(
         input=texts,
         model="text-embedding-3-small"
     )
