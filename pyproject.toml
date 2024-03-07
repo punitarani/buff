@@ -29,6 +29,7 @@ streamlit = "^1.30.0"
 tenacity = "^8.2.3"
 tiktoken = "^0.6.0"
 tqdm = "^4.66.0"
+unstructured = "^0.12.5"
 
 [tool.poetry.group.dev.dependencies]
 black = {extras = ["jupyter"], version = "^23.12.1"}
