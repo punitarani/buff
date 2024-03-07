@@ -18,6 +18,52 @@ PAPERS_PDF_DIR.mkdir(parents=True, exist_ok=True)
 logger = get_logger(__name__)
 
 
+async def get_paper_text(work: WorkObject) -> str:
+    """
+    Get the text of the paper.
+    If not downloaded, download it first.
+
+    Args:
+        work (WorkObject): Work object
+
+    Returns:
+        str: Extracted text from the paper
+
+    TODO: read the txt file instead of the pdf file
+    """
+    doi = str(work.doi)
+
+    # Handle the case where the DOI is not found
+    if doi is None:
+        logger.error(f"No DOI found for work: {work.title}")
+        return ""
+
+    # Remove the prefix "https://doi.org/" from the DOI
+    if doi.startswith("https://doi.org/"):
+        doi = doi[16:]
+    elif doi.startswith("http://doi.org/"):
+        doi = doi[15:]
+    elif doi.startswith("doi.org/"):
+        doi = doi[8:]
+
+    filename = sanitize_name(doi)
+    filepath = PAPERS_PDF_DIR.joinpath(filename + ".pdf")
+
+    # If the file already exists, extract the text and return it
+    if filepath.exists():
+        return extract_text(filepath)
+
+    # Download the paper
+    downloaded_path = await download_paper(work)
+
+    if downloaded_path is None:
+        logger.error(f"Failed to download paper: {doi}")
+        return ""
+
+    # Extract the text from the downloaded paper
+    return extract_text(downloaded_path)
+
+
 async def download_paper(work: WorkObject) -> Path | None:
     """
     Download the paper from the Unpaywall API.
