@@ -13,5 +13,5 @@ def split_text(text: str) -> list[str]:
     Returns:
         list[str]: List of chunks
     """
-    elements = partition_text(text=text, min_partition=40, max_partition=4000)
+    elements = partition_text(text=text, min_partition=40, max_partition=2000)
     return [chunk.text for chunk in elements]
