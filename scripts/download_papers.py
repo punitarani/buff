@@ -56,9 +56,9 @@ if __name__ == "__main__":
     print(f"Downloading {len(WORKS)} papers")
     downloaded = asyncio.run(download_papers(works=WORKS))
 
-    print("Mapping work IDs to DOIs")
-    work_dois = asyncio.run(map_work_id_to_doi(WORKS))
-
-    print("Saving to file works.json")
-    with open(WORKS_FP, "w", encoding="utf-8") as work_file:
-        json.dump(work_dois, work_file, indent=2)
+    # print("Mapping work IDs to DOIs")
+    # work_dois = asyncio.run(map_work_id_to_doi(WORKS))
+    #
+    # print("Saving to file works.json")
+    # with open(WORKS_FP, "w", encoding="utf-8") as work_file:
+    #     json.dump(work_dois, work_file, indent=2)

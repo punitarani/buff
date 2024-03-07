@@ -4,8 +4,8 @@ import asyncio
 from typing import Optional
 
 from buff.openalex import Work
-from buff.unpaywall import download_paper, extract_text, PAPERS_DIR
-from config import DATA_DIR
+from buff.openalex.download import download_paper, extract_text
+from config import DATA_DIR, PAPERS_DIR
 
 OA_FP = DATA_DIR.joinpath("oa.txt")
 NO_OA_FP = DATA_DIR.joinpath("no_oa.txt")
@@ -15,7 +15,7 @@ PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
 PAPERS_TXT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-async def download_papers(works: list[str], max_concurrent_downloads: int = 10) -> list[str]:
+async def download_papers(works: list[str], max_concurrent_downloads: int = 20) -> list[str]:
     """
     Download the papers concurrently
 
@@ -86,7 +86,7 @@ async def download_papers(works: list[str], max_concurrent_downloads: int = 10) 
             print(f"Work not open access: {work_id}")
             return None
 
-        fp = await download_paper(str(work.doi))
+        fp = await download_paper(work)
 
         # Handle the case where the paper is not found
         if fp is None:
