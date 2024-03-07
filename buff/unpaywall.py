@@ -108,7 +108,11 @@ async def download_paper(doi: str) -> Path | None:
     if url is None:
         return None
 
-    return await download_pdf(doi, filepath)
+    try:
+        return await download_pdf(doi, filepath)
+    except Exception as e:
+        logger.error(f"Error downloading paper: {doi}: {e}")
+        return None
 
 
 async def download_pdf(doi: str, filepath: Path) -> Path | None:
