@@ -185,7 +185,8 @@ class Work:
         citation_ids = []
         citation_works = {}
 
-        while len(citations) < limit:
+        await self.data  # Ensure the work data is fetched
+        while len(citations) < limit and len(citations) < self._data.cited_by_count:
             try:
                 data = await self.__GET(url + f"&page={page}&per-page={per_page}")
             except Exception as e:
