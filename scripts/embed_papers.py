@@ -13,13 +13,24 @@ from config import DATA_DIR, PAPERS_DIR
 PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
 NETWORK_FP = DATA_DIR.joinpath("network.json")
 WORKS_FP = DATA_DIR.joinpath("works.json")
+EMBEDDED_WORKS_FP = DATA_DIR.joinpath("embedded_works.txt")
 
-with open(NETWORK_FP, "r", encoding="utf-8") as f:
-    WORKS = json.load(f).get("nodes", [])
+with open(NETWORK_FP, "r", encoding="utf-8") as network_file:
+    WORKS = json.load(network_file).get("nodes", [])
 
 
 async def process_paper(work_id: str) -> None:
     """Process a paper"""
+
+    # Check if the work ID has already been embedded
+    with open(EMBEDDED_WORKS_FP, "a+") as f:
+        f.seek(0)
+        embedded_works = f.read().splitlines()
+
+    if work_id in embedded_works:
+        print(f"Work already embedded: {work_id}")
+        return
+
     work = await Work(work_id).data
     doi = str(work.doi)
     filename = sanitize_name(doi) + ".txt"
@@ -58,6 +69,10 @@ async def process_paper(work_id: str) -> None:
 
     # Upsert the documents into the vector database
     pc_papers.upsert(docs, namespace="papers")
+
+    # Write the work ID to the embedded works file
+    with open(EMBEDDED_WORKS_FP, "a") as f:
+        f.write(f"{work_id}\n")
 
 
 async def main():
