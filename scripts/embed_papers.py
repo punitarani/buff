@@ -53,8 +53,16 @@ async def process_paper(work_id: str) -> None:
     with open(txt_fp, "r", encoding="utf-8") as f:
         text = f.read()
 
+    text = text.strip()
+    if not text:
+        print(f"Empty text: {work_id} - {doi}")
+        return
+
     # Split the text
     chunks = split_text(text)
+    if not chunks:
+        print(f"No chunks: {work_id} - {doi}")
+        return
 
     # Embed the chunks
     embeds = await embed_texts(texts=chunks, input_type="search_document")
