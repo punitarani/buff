@@ -34,6 +34,15 @@ async def process_paper(work_id: str) -> None:
 
     work = await Work(work_id).data
     doi = str(work.doi)
+
+    # Remove the URL prefix from the DOI
+    if doi.startswith("https://doi.org/"):
+        doi = doi[16:]
+    if doi.startswith("http://doi.org/"):
+        doi = doi[15:]
+    elif doi.startswith("doi.org/"):
+        doi = doi[8:]
+
     filename = sanitize_name(doi) + ".txt"
     txt_fp = PAPERS_TXT_DIR.joinpath(filename)
 
