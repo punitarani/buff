@@ -2,7 +2,6 @@
 
 from buff.llm.client import cohere
 
-
 SEARCH_WEB_PREAMBLE = """
 You are a scientist with access to the internet.
 Your task is to answer the following question concisely and accurately using web-search.

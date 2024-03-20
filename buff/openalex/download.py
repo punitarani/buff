@@ -7,9 +7,10 @@ from pathlib import Path
 import fitz
 import httpx
 
-from .models import WorkObject
 from buff.utils import get_logger, sanitize_name, save_sanitized_name
-from config import EMAIL, PAPERS_DIR
+from config import PAPERS_DIR
+
+from .models import WorkObject
 
 # Ensure the directories exist
 PAPERS_PDF_DIR = PAPERS_DIR.joinpath("pdf")
@@ -137,7 +138,7 @@ async def download_pdf(doi: str, url: str, filepath: Path) -> Path | None:
 
                 # Check MIME type and PDF signature
                 if content_type == "application/pdf" or response.content.startswith(
-                        b"%PDF-"
+                    b"%PDF-"
                 ):
                     with open(filepath, "wb") as f:
                         f.write(response.content)

@@ -15,7 +15,9 @@ PAPERS_TXT_DIR = PAPERS_DIR.joinpath("txt")
 PAPERS_TXT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-async def download_papers(works: list[str], max_concurrent_downloads: int = 20) -> list[str]:
+async def download_papers(
+    works: list[str], max_concurrent_downloads: int = 20
+) -> list[str]:
     """
     Download the papers concurrently
 
