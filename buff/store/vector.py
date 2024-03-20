@@ -8,4 +8,4 @@ pc = Pinecone(api_key=SECRETS.PINECONE_API_KEY)
 
 
 # papers index
-pc_manuals = pc.Index(name="papers")
+pc_papers = pc.Index(name="papers")
