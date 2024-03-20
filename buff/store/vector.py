@@ -5,3 +5,7 @@ from pinecone import Pinecone
 from buff import SECRETS
 
 pc = Pinecone(api_key=SECRETS.PINECONE_API_KEY)
+
+
+# papers index
+pc_manuals = pc.Index(name="papers")
