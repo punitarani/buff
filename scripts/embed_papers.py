@@ -21,6 +21,7 @@ with open(NETWORK_FP, "r", encoding="utf-8") as network_file:
 
 async def process_paper(work_id: str) -> None:
     """Process a paper"""
+    print(f"Processing: {work_id}")
 
     # Check if the work ID has already been embedded
     with open(EMBEDDED_WORKS_FP, "a+") as f:
@@ -83,7 +84,7 @@ async def main():
         async with semaphore:
             await process_paper(work_id)
 
-    tasks = [process_paper_with_semaphore(work["id"]) for work in WORKS]
+    tasks = [process_paper_with_semaphore(work) for work in WORKS]
     await asyncio.gather(*tasks)
 
 
