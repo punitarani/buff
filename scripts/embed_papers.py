@@ -15,8 +15,8 @@ NETWORK_FP = DATA_DIR.joinpath("network.json")
 WORKS_FP = DATA_DIR.joinpath("works.json")
 EMBEDDED_WORKS_FP = DATA_DIR.joinpath("embedded_works.txt")
 
-with open(NETWORK_FP, "r", encoding="utf-8") as network_file:
-    WORKS = json.load(network_file).get("nodes", [])
+with open(WORKS_FP, "r", encoding="utf-8") as work_file:
+    WORKS = list(json.load(work_file).keys())
 
 
 async def process_paper(work_id: str) -> None:
@@ -86,7 +86,7 @@ async def process_paper(work_id: str) -> None:
     docs = [doc.model_dump(mode="json") for doc in documents]
 
     # Upsert the documents into the vector database
-    pc_papers.upsert(docs, namespace="papers")
+    pc_papers.upsert(docs, namespace="papers", batch_size=25)
 
     # Write the work ID to the embedded works file
     with open(EMBEDDED_WORKS_FP, "a") as f:
