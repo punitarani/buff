@@ -1,6 +1,8 @@
 """buff/llm/skills/search.py"""
 
 from buff.llm.client import cohere
+from buff.llm.embed import embed_text
+from buff.store.vector import pc_papers
 
 SEARCH_WEB_PREAMBLE = """
 You are a scientist with access to the internet.
@@ -45,3 +47,16 @@ async def search_wiki(question: str) -> str:
         documents=[],
     )
     return prediction.text
+
+
+async def search_memory(question: str, n: int = 10) -> list[dict]:
+    """Search the memory for the answer to a question."""
+    q_vector = await embed_text(text=question, input_type="search_query")
+    docs = pc_papers.query(
+        vector=q_vector,
+        top_k=n,
+        include_values=False,
+        include_metadata=True,
+        namespace="papers",
+    )
+    return docs.get("matches", [])
