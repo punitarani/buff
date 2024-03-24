@@ -8,7 +8,7 @@ async def embed_text(text: str, input_type: str = "search_document") -> list[flo
     response = await cohere.embed(
         texts=[text], model="embed-english-v3.0", input_type=input_type
     )
-    return response.embedding
+    return response.embeddings[0]
 
 
 async def embed_texts(
