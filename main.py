@@ -8,16 +8,25 @@ import asyncio
 
 import streamlit as st
 
-from buff.llm.agents.research import breakdown_objective
+from buff.llm.agents.research import breakdown_objective, research_planner
 
 
 def format_steps(idea_steps: list[str]) -> str:
     """Format the objective steps."""
     formatted_steps = []
     for idx, step in enumerate(idea_steps):
-        formatted_step = f"**{idx+1}**: {step}"
+        formatted_step = f"**{idx + 1}**: {step}"
         formatted_steps.append(formatted_step)
     return "\n\n".join(formatted_steps)
+
+
+def format_plan(plan: list[dict]) -> str:
+    """Format the strp plan."""
+    formatted_plan = []
+    for idx, task in enumerate(plan):
+        formatted_task = f"`{task['agent']}` {task['task']}"
+        formatted_plan.append(formatted_task)
+    return "\n\n".join(formatted_plan)
 
 
 st.set_page_config(page_title="buff", page_icon=":microscope:", layout="wide")
@@ -25,7 +34,7 @@ st.set_page_config(page_title="buff", page_icon=":microscope:", layout="wide")
 st.title("buff")
 
 research_objective = st.text_input(
-    "Research Topic",
+    "Research Objective",
     "Can protein misfolding be used to treat neurodegenerative diseases?"
 )
 start_button = st.button(
@@ -49,3 +58,17 @@ if start_button or "steps" in st.session_state:
     if steps:
         st.subheader("Research Steps")
         st.write(format_steps(steps))
+        run_button = st.button("Run Plan", help="Run the research plan.", use_container_width=True)
+        # TODO: allow user to to edit steps
+
+        if run_button:
+            for s_id, step in enumerate(steps):
+                with st.status(f"Step {s_id + 1}: {step}"):
+                    section_content = st.empty()
+                    section_content.write(f"Running Step {s_id + 1} ...")
+                    research_plan = asyncio.run(research_planner(step))
+                    section_content.write(format_plan(research_plan))
+                    st.divider()
+
+                    st.error("Not Implemented")
+                st.stop()
