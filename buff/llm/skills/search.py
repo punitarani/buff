@@ -7,12 +7,12 @@ from buff.store.vector import pc_papers
 SEARCH_WEB_PREAMBLE = """
 You are a scientist with access to the internet.
 Your task is to answer the following question concisely and accurately using web-search.
-""".strip
+""".strip()
 
 SEARCH_WIKI_PREAMBLE = """
 You are a scientist with access to Wikipedia.
 Your task is to answer the following question concisely and accurately using information from Wikipedia.
-""".strip
+""".strip()
 
 
 async def search_web(question: str) -> str:
