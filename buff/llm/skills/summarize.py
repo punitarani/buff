@@ -1,5 +1,7 @@
 """buff/llm/skills/summarize.py"""
 
+from tenacity import retry, stop_after_attempt, wait_fixed
+
 from buff.llm.client import openai
 
 SUMMARIZE_PAPER_SYSTEM_PROMPT = """
@@ -14,6 +16,7 @@ Your task is to summarize the meeting notes as follows:
 """.strip()
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def summarize_paper(text: str) -> str:
     """
     Summarize the paper.

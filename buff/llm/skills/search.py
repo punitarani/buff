@@ -1,5 +1,7 @@
 """buff/llm/skills/search.py"""
 
+from tenacity import retry, stop_after_attempt, wait_fixed
+
 from buff.llm.client import cohere
 from buff.llm.embed import embed_text
 from buff.store.vector import pc_papers
@@ -15,6 +17,7 @@ Your task is to answer the following question concisely and accurately using inf
 """.strip()
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def search_web(question: str) -> str:
     """Search the internet for the answer to a question."""
 
@@ -31,6 +34,7 @@ async def search_web(question: str) -> str:
     return prediction.text
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def search_wiki(question: str) -> str:
     """Search Wikipedia for the answer to a question."""
 
@@ -49,6 +53,7 @@ async def search_wiki(question: str) -> str:
     return prediction.text
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def search_memory(question: str, n: int = 10) -> list[dict]:
     """Search the memory for the answer to a question."""
     q_vector = await embed_text(text=question, input_type="search_query")
