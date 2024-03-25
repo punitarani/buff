@@ -54,9 +54,10 @@ async def search_wiki(question: str) -> str:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
-async def search_memory(question: str, n: int = 10) -> list[dict]:
+async def search_memory(question: str, n: int = 10) -> str:
     """Search the memory for the answer to a question."""
     q_vector = await embed_text(text=question, input_type="search_query")
+
     docs = pc_papers.query(
         vector=q_vector,
         top_k=n,
@@ -64,4 +65,14 @@ async def search_memory(question: str, n: int = 10) -> list[dict]:
         include_metadata=True,
         namespace="papers",
     )
-    return docs.get("matches", [])
+
+    chat = await cohere.chat(
+        model="command-r",
+        message=question,
+        documents=[
+            {"title": str(doc["metadata"]["doi"]), "snippet": doc["metadata"]["text"]}
+            for doc in docs.get("matches", [])
+        ],
+    )
+
+    return chat.text
