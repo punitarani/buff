@@ -23,7 +23,7 @@ async def search_web(question: str) -> str:
 
     prediction = await cohere.chat(
         message=question,
-        preamble_override=SEARCH_WEB_PREAMBLE,
+        preamble=SEARCH_WEB_PREAMBLE,
         model="command",
         temperature=0,
         stream=False,
@@ -40,7 +40,7 @@ async def search_wiki(question: str) -> str:
 
     prediction = await cohere.chat(
         message=question,
-        preamble_override=SEARCH_WIKI_PREAMBLE,
+        preamble=SEARCH_WIKI_PREAMBLE,
         model="command",
         temperature=0,
         stream=False,
