@@ -110,17 +110,6 @@ if __name__ == "__main__":
         disabled=("steps" in st.session_state),
     )
 
-    # Create a download button for the JSON file
-    st.download_button(
-        label="Download JSON",
-        data=json.dumps(research_data, indent=2),
-        file_name="research_data.json",
-        mime="application/json",
-        type="secondary",
-        use_container_width=True,
-        disabled=("steps" not in st.session_state),
-    )
-
     st.divider()
     if start_button or "steps" in st.session_state:
         research_data["objective"] = research_objective
@@ -165,3 +154,15 @@ if __name__ == "__main__":
                             f"**{step}**\n\n{step_response['response']}"
                         )
                         print(research_data)
+
+    # Create a download button for the JSON file
+    st.divider()
+    st.download_button(
+        label="Download JSON",
+        data=json.dumps(research_data, indent=2),
+        file_name="research_data.json",
+        mime="application/json",
+        type="secondary",
+        use_container_width=True,
+        disabled=("steps" not in st.session_state),
+    )
