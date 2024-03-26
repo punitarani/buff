@@ -119,7 +119,6 @@ async def summarize_papers(topic: str, n: int = 5) -> str:
     )
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def summarize_text(text: str) -> str:
     """
     Summarize the contents of a research paper.

@@ -11,7 +11,6 @@ You should provide a detailed and methodical analysis with supporting evidence a
 """.strip()
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def analyze_texts(texts: list[str], task: str) -> str:
     """
     Analyze the texts using the provided task prompt.

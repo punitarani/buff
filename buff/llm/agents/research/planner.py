@@ -84,7 +84,6 @@ assistant:
 """.strip()
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def research_planner(task: str, context: str = None) -> list[dict[str, str]]:
     """
     Plan the research project based on the task and context information.

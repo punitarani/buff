@@ -30,7 +30,6 @@ It should have a single root key "steps" and a list of strings as the value.
 """.strip()
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def breakdown_objective(objective: str) -> list[str]:
     """Break down a complex scientific research objective into smaller research tasks."""
 
