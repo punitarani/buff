@@ -5,6 +5,7 @@ python -m streamlit run main.py
 """
 
 import asyncio
+from typing import Any
 
 import nest_asyncio
 import streamlit as st
@@ -19,7 +20,7 @@ from buff.llm.agents.research import breakdown_objective, research_planner, run_
 st.set_page_config(page_title="buff", page_icon=":microscope:", layout="wide")
 
 
-def run_async(async_func, *args):
+def run_async(async_func, *args) -> Any:
     """
     Run an asynchronous function using the existing event loop.
     """
@@ -53,21 +54,27 @@ def run_step(
         tasks: list[dict[str, str]],
         context: list[str],
         content: st.empty(),
-) -> str:
+) -> dict[str, str]:
     """Run the step."""
     log = []
+
     with content.container():
         for idx, task in enumerate(tasks):
             agent, task = task["agent"], task["task"]
             with st.spinner(f"Running task {idx + 1}..."):
                 response = run_async(run_agent, agent, task, context)
-                log.append(f"`{agent}`\n{task}\n\n{response}\n\n")
-                st.write(f"`{agent}`\n{task}\n\n{response}\n\n")
+                log.append({"agent": agent, "task": task, "response": response})
+
+                st.write(f"`{agent}`\n**{task}**\n\n{response}\n\n")
                 st.divider()
+
                 if response:
                     context += response + "\n"
 
-    return log[-1]
+    # Return the last non-empty response from the log
+    for entry in reversed(log):
+        if entry["agent"] != "planner":
+            return entry
 
 
 if __name__ == "__main__":
@@ -105,17 +112,14 @@ if __name__ == "__main__":
                 run_context = []
                 for s_id, step in enumerate(steps):
                     with st.status(f"Step {s_id + 1}: {step}"):
-                        section_content = st.empty()
-                        section_content.write(f"Running Step {s_id + 1} ...")
-
-                        # Generate the research plan
-                        research_plan = run_async(research_planner, step)
-                        section_content.write(format_plan(research_plan))
-
-                        st.divider()
+                        with st.spinner(f"Generating plan for step {s_id + 1}..."):
+                            research_plan = run_async(research_planner, step)
+                            st.write(format_plan(research_plan))
+                            st.divider()
 
                         # Run the step
+                        section_content = st.empty()
                         step_response = run_step(research_plan, research_objective, section_content)
-                        run_context.append(step_response[-1])
-
-                        st.divider()
+                        run_context.append(
+                            f"**{step}**\n\n{step_response['response']}"
+                        )
