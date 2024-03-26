@@ -78,7 +78,6 @@ async def summarize_papers(topic: str, n: int = 5) -> str:
         message=topic, model="command-light", search_queries_only=True
     )
     search_queries = [query["text"] for query in chat_response.search_queries]
-    print(search_queries)
 
     q_vectors = await embed_texts(texts=search_queries, input_type="search_query")
 
@@ -96,7 +95,6 @@ async def summarize_papers(topic: str, n: int = 5) -> str:
         # Iterate through the matches' id's
         # id format: work_id#idx
         work_ids.extend([match["id"].split("#")[0] for match in matches])
-    print(work_ids)
 
     # Get the n most common work_id's
     work_ids = [work_id for work_id, _ in Counter(work_ids).most_common(n)]
@@ -104,7 +102,6 @@ async def summarize_papers(topic: str, n: int = 5) -> str:
     works: list[WorkObject] = [
         await Work(entity_id=work_id).get() for work_id in work_ids
     ]
-    print([work.title for work in works])
 
     texts: dict[str, str] = {work.id: await get_paper_text(work=work) for work in works}
 
@@ -112,7 +109,6 @@ async def summarize_papers(topic: str, n: int = 5) -> str:
     summaries = await asyncio.gather(
         *(summarize_text(text=text) for work_id, text in texts.items())
     )
-    print(summaries)
 
     return "\n\n".join(
         f"{work_id}\n{summary}" for work_id, summary in zip(texts.keys(), summaries)
