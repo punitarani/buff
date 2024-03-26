@@ -84,11 +84,10 @@ def run_step(
                     "response": response
                 })
 
-                st.write(f"`{agent}`\n**{task}**\n\n{response}\n\n")
-                st.divider()
-
                 if response:
                     context += response + "\n"
+                    st.write(f"`{agent}`\n**{task}**\n\n{response}\n\n")
+                    st.divider()
 
     # Return the last non-empty response from the log
     for entry in reversed(log):
